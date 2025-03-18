@@ -149,18 +149,30 @@ const searchProductByName = async (req, res) => {
 // ✅ استرجاع جميع المنتجات
 const getAllProducts = async (req, res) => {
     try {
-        // ✅ استخدام `populate()` لجلب التقييمات
-        const products = await Product.find().populate({
-            path: 'reviews',
-            model: 'Review',
-            select: 'user rating comment createdAt' // تحديد الحقول المطلوبة فقط
-        });
+        // ✅ استخدام populate() لجلب التقييمات، الفئة، والفئة الفرعية
+        const products = await Product.find()
+            .populate({
+                path: 'reviews',
+                model: 'Review',
+                select: 'user rating comment createdAt' // تحديد الحقول المطلوبة فقط
+            })
+            .populate({
+                path: 'category',
+                model: 'Category',
+                select: 'name description' // جلب اسم ووصف الفئة
+            })
+            .populate({
+                path: 'subcategory',
+                model: 'Category',
+                select: 'name description' // جلب اسم ووصف الفئة الفرعية
+            });
 
         res.json(products);
     } catch (error) {
         res.status(500).json({ message: '❌ حدث خطأ أثناء استرجاع المنتجات', error: error.message });
     }
 };
+
 
 const getProductById = async (req, res) => {
     try {

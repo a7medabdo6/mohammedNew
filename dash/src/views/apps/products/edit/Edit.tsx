@@ -1,158 +1,226 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, ChangeEvent, FormEvent } from "react";
-import { TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem } from "@mui/material";
-
-// تحميل ReactQuill فقط في المتصفح لمنع مشاكل SSR
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem, Select, InputLabel, FormControl, SelectChangeEvent } from "@mui/material";
+import { updateProduct } from "src/services/products";
+import { getCategories } from "src/services/categories";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-import "react-quill/dist/quill.snow.css"; // استيراد نمط المحرر
+import "react-quill/dist/quill.snow.css";
 
-// تعريف الواجهات (Types)
 interface Category {
   _id: string;
   name: string;
-}
-interface ProductEditFormProps {
-  id: string;
-  categories?: Category[];
+  subcategories: { _id: string; name: string; }[];
 }
 
-interface Product {
-  name_ar: string;
-  name_en: string;
-  description_ar: string;
-  description_en: string;
-  images: string;
-  price: string;
-  quantity: string;
-  category: string;
-  subcategory: string;
+export interface ProductData {
+  name: {
+    ar: string;
+    en: string;
+  };
+  description: {
+    ar: string;
+    en: string;
+  };
+  images: string[];
+  price: number;
+  quantity: number;
+  category?: string;
+  subcategory?: string;
   isOffer: boolean;
+  priceBeforeOffer?: number;
   isTopSelling: boolean;
   isTopRating: boolean;
   isTrending: boolean;
-  priceBeforeOffer: string;
 }
 
-// بيانات تصنيفات افتراضية (يمكن جلبها من API)
-const dummyCategories: Category[] = [
-  { _id: "1", name: "إلكترونيات" },
-  { _id: "2", name: "ملابس" },
-  { _id: "3", name: "أثاث" },
-];
+interface ProductEditFormProps {
+  id: string;
+  product: ProductData;
+}
 
-const ProductEditForm = ({ id, categories = dummyCategories }: ProductEditFormProps) => {
-  const [product, setProduct] = useState<Product>({
-    name_ar: "",
-    name_en: "",
-    description_ar: "",
-    description_en: "",
-    images: "",
-    price: "",
-    quantity: "",
-    category: "",
-    subcategory: "",
-    isOffer: false,
-    isTopSelling: false,
-    isTopRating: false,
-    isTrending: false,
-    priceBeforeOffer: "",
+const ProductEditForm = ({ id, product }: ProductEditFormProps) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category["subcategories"]>([]);
+  const [productData, setProductData] = useState<ProductData>({
+    ...product,
+    category: (product.category as any)?._id || product.category || "",
+    subcategory: (product.subcategory as any)?._id || product.subcategory || "",
   });
 
-  // التعامل مع الحقول النصية والعادية
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const result = await getCategories();
+        setCategories(result);
+
+        // ✅ التحقق مما إذا كانت category كائنًا يحتوي على _id أو مجرد string
+        const categoryId =
+          typeof product.category === "object" && product.category !== null
+            ? (product.category as any)._id
+            : product.category;
+
+        // ✅ البحث باستخدام _id إذا كان متاحًا
+        const foundCategory = result.find((cat: { _id: any; }) => cat._id === categoryId);
+
+        if (foundCategory) {
+          setSubcategories(foundCategory.subcategories);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, [product.category]);
+
+
+  useEffect(() => {
+    if (productData.category) {
+      const selectedCategory = categories.find((cat) => cat._id === productData.category);
+      setSubcategories(selectedCategory ? selectedCategory.subcategories : []);
+    }
+  }, [productData.category, categories]);
+
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>
+  ) => {
+    const { name, value, type } = e.target as HTMLInputElement;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setProduct({
-      ...product,
-      [name]: type === "checkbox" ? checked : value,
+    setProductData((prev) => {
+      // ✅ التعامل مع الحقول التي تحتوي على كائنات متداخلة مثل name و description
+      if (name.startsWith("name.") || name.startsWith("description.")) {
+        const [parent, child] = name.split(".") as ["name" | "description", "ar" | "en"];
+
+        return {
+          ...prev,
+          [parent]: {
+            ...((prev[parent] as Record<string, string>) || {}), // تأكد من أن الحقل كائن وليس undefined
+            [child]: value,
+          },
+        };
+      }
+
+      // ✅ تحديث الصور وتحويلها إلى مصفوفة
+      if (name === "images") {
+        return { ...prev, images: value.split(",").map((img) => img.trim()) };
+      }
+
+      // ✅ عند تغيير الفئة، يتم مسح الفئة الفرعية
+      if (name === "category") {
+        return { ...prev, category: value, subcategory: "" };
+      }
+
+      // ✅ تحديث باقي الحقول (بما في ذلك الـ checkbox)
+      return { ...prev, [name]: type === "checkbox" ? checked : value };
     });
   };
 
-  // التعامل مع محرر النصوص (ReactQuill)
-  const handleDescriptionChange = (name: keyof Product, value: string) => {
-    setProduct({ ...product, [name]: value });
+
+  const handleDescriptionChange = (field: "ar" | "en", value: string) => {
+    setProductData((prev) => ({
+      ...prev,
+      description: {
+        ...prev.description,
+        [field]: value,
+      },
+    }));
   };
 
-  // معالجة إرسال النموذج
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("✅ المنتج المُدخل:", product);
+    setLoading(true);
+    setMessage(null);
+    try {
+      await updateProduct(id, productData);
+      setMessage("✅ تم تحديث المنتج بنجاح!");
+      toast.success("✅ تم تحديث المنتج بنجاح!");
+
+    } catch (error) {
+      setMessage(`❌ فشل التحديث: ${error}`);
+      toast.error(`❌ فشل التحديث: ${error}`);
+
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <Grid container spacing={2}>
-        {/* إدخال اسم المنتج */}
-        <Grid item xs={12} md={6}>
-          <TextField fullWidth label="اسم المنتج (عربي)" name="name_ar" value={product.name_ar} onChange={handleChange} required />
+      <Grid container spacing={2} >
+        <Grid item xs={12} md={6} style={{ marginBottom: 20 }}>
+          <TextField fullWidth label="اسم المنتج (عربي)" name="name.ar" value={productData.name.ar} onChange={handleChange} required />
         </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField fullWidth label="Product Name (English)" name="name_en" value={product.name_en} onChange={handleChange} required />
+        <Grid item xs={12} md={6} style={{ marginBottom: 20 }} >
+          <TextField fullWidth label="Product Name (English)" name="name.en" value={productData.name.en} onChange={handleChange} required />
         </Grid>
 
-        {/* إدخال وصف المنتج */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <label>الوصف (عربي)</label>
-          <ReactQuill style={{ height: "200px", marginBottom: 50 }} theme="snow" value={product.description_ar} onChange={(value) => handleDescriptionChange("description_ar", value)} />
+          <ReactQuill theme="snow" value={productData.description.ar} onChange={(value) => handleDescriptionChange("ar", value)} style={{ height: 250, marginBottom: 50 }} />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <label>Description (English)</label>
-          <ReactQuill style={{ height: "200px", marginBottom: 50 }} theme="snow" value={product.description_en} onChange={(value) => handleDescriptionChange("description_en", value)} />
+          <ReactQuill theme="snow" value={productData.description.en} onChange={(value) => handleDescriptionChange("en", value)} style={{ height: 250, marginBottom: 50 }} />
         </Grid>
 
-        {/* إدخال صور المنتج */}
-        <Grid item xs={12}>
-          <TextField fullWidth label="صور المنتج (روابط مفصولة بفاصلة)" name="images" value={product.images} onChange={handleChange} required />
+        <Grid item xs={12} style={{ marginBottom: 20 }} >
+          <TextField fullWidth label="صور المنتج (روابط مفصولة بفاصلة)" name="images" value={productData.images.join(", ")} onChange={handleChange} required />
         </Grid>
 
-        {/* إدخال السعر والكمية */}
-        <Grid item xs={12} md={6}>
-          <TextField fullWidth type="number" label="السعر" name="price" value={product.price} onChange={handleChange} required />
+        <Grid item xs={12} md={6} style={{ marginBottom: 20 }}>
+          <TextField fullWidth type="number" label="السعر" name="price" value={productData.price} onChange={handleChange} required />
         </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField fullWidth type="number" label="الكمية" name="quantity" value={product.quantity} onChange={handleChange} required />
+        <Grid item xs={12} md={6} style={{ marginBottom: 20 }}>
+          <TextField fullWidth type="number" label="الكمية" name="quantity" value={productData.quantity} onChange={handleChange} required />
         </Grid>
+        <FormControl fullWidth style={{ marginBottom: 20 }}>
+          <InputLabel>الفئة</InputLabel>
+          <Select name="category" value={productData.category || ""} onChange={handleChange}>
+            {categories.map((category) => (
+              <MenuItem key={category._id} value={category._id}>{category.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        {/* اختيار التصنيف والتصنيف الفرعي */}
-        <Grid item xs={12} md={6}>
-          <TextField select fullWidth label="التصنيف" name="category" value={product.category} onChange={handleChange} required>
-            {categories.map((cat) => (
-              <MenuItem key={cat._id} value={cat._id}>
-                {cat.name}
+        <FormControl fullWidth style={{ marginBottom: 20 }}>
+          <InputLabel>الفئة الفرعية</InputLabel>
+          <Select name="subcategory" value={productData.subcategory || ""} onChange={handleChange}>
+            {subcategories.map((sub) => (
+              <MenuItem key={sub._id} value={sub._id}>
+                {sub.name}
               </MenuItem>
             ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField select fullWidth label="التصنيف الفرعي" name="subcategory" value={product.subcategory} onChange={handleChange}>
-            {categories.map((cat) => (
-              <MenuItem key={cat._id} value={cat._id}>
-                {cat.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
+          </Select>
+        </FormControl>
 
-        {/* حقول التحقق (checkboxes) */}
-        <Grid item xs={12}>
-          <FormControlLabel control={<Checkbox name="isOffer" checked={product.isOffer} onChange={handleChange} />} label="هل عليه عرض؟" />
-          {product.isOffer && (
-            <TextField type="number" label="السعر قبل العرض" name="priceBeforeOffer" value={product.priceBeforeOffer} onChange={handleChange} required={product.isOffer} />
+
+        <Grid item xs={12} style={{ marginBottom: 20 }}>
+          <FormControlLabel control={<Checkbox name="isOffer" checked={productData.isOffer} onChange={handleChange} />} label="هل عليه عرض؟" />
+          {productData.isOffer && (
+            <TextField type="number" label="السعر قبل العرض" name="priceBeforeOffer" value={productData.priceBeforeOffer ?? 0} onChange={handleChange} required />
           )}
         </Grid>
-        <Grid item xs={12}>
-          <FormControlLabel control={<Checkbox name="isTopSelling" checked={product.isTopSelling} onChange={handleChange} />} label="من الأكثر مبيعًا؟" />
-          <FormControlLabel control={<Checkbox name="isTopRating" checked={product.isTopRating} onChange={handleChange} />} label="من الأعلى تقييمًا؟" />
-          <FormControlLabel control={<Checkbox name="isTrending" checked={product.isTrending} onChange={handleChange} />} label="منتج شائع؟" />
+
+        <Grid item xs={12} style={{ marginBottom: 20 }}>
+          <FormControlLabel control={<Checkbox name="isTopSelling" checked={productData.isTopSelling} onChange={handleChange} />} label="من الأكثر مبيعًا؟" />
+          <FormControlLabel control={<Checkbox name="isTopRating" checked={productData.isTopRating} onChange={handleChange} />} label="من الأعلى تقييمًا؟" />
+          <FormControlLabel control={<Checkbox name="isTrending" checked={productData.isTrending} onChange={handleChange} />} label="منتج شائع؟" />
         </Grid>
 
-        {/* زر الإرسال */}
         <Grid item xs={12}>
-          <Button type="submit" variant="contained" color="primary">
-            تعديل المنتج
+          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            {loading ? "جاري التحديث..." : "تعديل المنتج"}
           </Button>
         </Grid>
       </Grid>
@@ -161,5 +229,3 @@ const ProductEditForm = ({ id, categories = dummyCategories }: ProductEditFormPr
 };
 
 export default ProductEditForm;
-
-

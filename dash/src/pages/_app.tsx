@@ -6,7 +6,8 @@ import Head from 'next/head'
 import { Router } from 'next/router'
 import type { NextPage } from 'next'
 import type { AppProps } from 'next/app'
-
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // ** Store Imports
 import { store } from 'src/store'
 import { Provider } from 'react-redux'
@@ -144,6 +145,8 @@ const App = (props: ExtendedAppProps) => {
                     <ReactHotToast>
                       <Toaster position={settings.toastPosition} toastOptions={{ className: 'react-hot-toast' }} />
                     </ReactHotToast>
+                    {/* إضافة ToastContainer هنا */}
+                    <ToastContainer position="top-right" autoClose={3000} />
                   </ThemeComponent>
                 )
               }}

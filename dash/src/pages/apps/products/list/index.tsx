@@ -11,12 +11,13 @@ import Typography from '@mui/material/Typography'
 import CardContent from '@mui/material/CardContent'
 import { SelectChangeEvent } from '@mui/material/Select'
 import { DataGrid, GridColDef, GridRowId } from '@mui/x-data-grid'
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // ** Icon Imports
 import Icon from 'src/@core/components/icon'
 
 // ** Utils Import
-import { getAllProducts, ProductData } from 'src/services/products'
+import { deleteProduct, getAllProducts, ProductData } from 'src/services/products'
 
 // ** Custom Components
 import TableHeader from 'src/views/apps/products/list/TableHeader'
@@ -60,6 +61,20 @@ const InvoiceList = () => {
   const handleFilter = (val: string) => {
     setValue(val)
   }
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm('هل أنت متأكد من أنك تريد حذف هذا المنتج؟')) return;
+
+    try {
+      await deleteProduct(productId);
+      setProducts(prevProducts => prevProducts.filter(product => product._id !== productId));
+
+      // إشعار بالنجاح
+      toast.success('تم حذف المنتج بنجاح!', { position: 'top-right', autoClose: 3000 });
+    } catch (err) {
+      // إشعار بالخطأ
+      toast.error(err as string || 'فشل في حذف المنتج', { position: 'top-right', autoClose: 3000 });
+    }
+  };
 
   const columns: GridColDef[] = [
     {
@@ -110,6 +125,8 @@ const InvoiceList = () => {
             <IconButton
               size='small'
               sx={{ color: 'error.main' }}
+              onClick={() => handleDeleteProduct(row._id)}
+
             >
               <Icon icon='tabler:trash' />
             </IconButton>
@@ -150,6 +167,8 @@ const InvoiceList = () => {
           />
         </Card>
       </Grid>
+      <ToastContainer />
+
     </Grid>
   )
 }

@@ -80,7 +80,6 @@ const createProduct = async (req, res) => {
 
 
 
-// ✅ تعديل المنتج
 const updateProduct = async (req, res) => {
     try {
         const { productId } = req.params;
@@ -92,13 +91,32 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ message: '❌ المنتج غير موجود' });
         }
 
-        // إذا كان isOffer = true، يجب التحقق من priceBeforeOffer
-        if (updates.isOffer && (!updates.priceBeforeOffer || updates.priceBeforeOffer <= (updates.price || product.price))) {
-            return res.status(400).json({ message: '❌ يجب أن يكون السعر قبل العرض أعلى من السعر الحالي' });
+        // التحقق من صحة الحقول العددية (السعر، الكمية، السعر قبل العرض)
+        if (updates.price !== undefined && updates.price < 0) {
+            return res.status(400).json({ message: '❌ السعر يجب أن يكون رقمًا موجبًا' });
+        }
+        if (updates.quantity !== undefined && updates.quantity < 0) {
+            return res.status(400).json({ message: '❌ الكمية يجب أن تكون رقمًا موجبًا' });
+        }
+        if (updates.priceBeforeOffer !== undefined && updates.priceBeforeOffer < 0) {
+            return res.status(400).json({ message: '❌ السعر قبل العرض يجب أن يكون رقمًا موجبًا' });
         }
 
-        // تحديث المنتج
-        Object.assign(product, updates);
+        // إذا كان isOffer = true، يجب التحقق من أن السعر قبل العرض أعلى من السعر الحالي
+        if (updates.isOffer) {
+            if (!updates.priceBeforeOffer || updates.priceBeforeOffer <= (updates.price || product.price)) {
+                return res.status(400).json({ message: '❌ يجب أن يكون السعر قبل العرض أعلى من السعر الحالي' });
+            }
+        } else {
+            updates.priceBeforeOffer = null; // إذا لم يكن عليه عرض، لا يجب أن يكون هناك سعر قبل العرض
+        }
+
+        // تحديث جميع الحقول المطلوبة
+        Object.keys(updates).forEach((key) => {
+            product[key] = updates[key];
+        });
+
+        // حفظ التعديلات في قاعدة البيانات
         await product.save();
 
         res.json({ message: '✅ تم تحديث المنتج بنجاح', product });
@@ -106,6 +124,8 @@ const updateProduct = async (req, res) => {
         res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث المنتج', error: error.message });
     }
 };
+
+
 
 
 // ✅ حذف المنتج والمراجعات الخاصة به
@@ -178,12 +198,23 @@ const getProductById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // ✅ جلب المنتج مع التقييمات المرتبطة
-        const product = await Product.findById(id).populate({
-            path: 'reviews',
-            model: 'Review',
-            select: 'user rating comment createdAt'
-        });
+        // ✅ جلب المنتج مع التقييمات والفئة والفئة الفرعية
+        const product = await Product.findById(id)
+            .populate({
+                path: 'reviews',
+                model: 'Review',
+                select: 'user rating comment createdAt'
+            })
+            .populate({
+                path: 'category',
+                model: 'Category',
+                select: 'name description'
+            })
+            .populate({
+                path: 'subcategory',
+                model: 'Category',
+                select: 'name description'
+            });
 
         if (!product) {
             return res.status(404).json({ message: '❌ المنتج غير موجود' });

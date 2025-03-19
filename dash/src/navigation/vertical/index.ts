@@ -64,28 +64,18 @@ const navigation = (): VerticalNavItemsType => {
       ]
     },
     {
+      title: 'Categories',
+      icon: 'tabler:file-dollar',
+      path: '/apps/categories/list'
+
+
+    },
+    {
       title: 'Products',
       icon: 'tabler:file-dollar',
       path: '/apps/products/list'
 
-      // children: [
-      //   {
-      //     title: 'List',
-      //     path: '/apps/invoice/list'
-      //   },
-      //   {
-      //     title: 'Preview',
-      //     path: '/apps/invoice/preview'
-      //   },
-      //   {
-      //     title: 'Edit',
-      //     path: '/apps/invoice/edit'
-      //   },
-      //   {
-      //     title: 'Add',
-      //     path: '/apps/invoice/add'
-      //   }
-      // ]
+
     },
     {
       title: 'User',

@@ -2,7 +2,7 @@ import axiosInstance from 'src/configs/axiosInstance';
 import axios from 'axios';
 
 export interface ProductData {
-    _id: string;
+    _id?: string;
     nameAr: string;
     nameEn: string;
     descriptionAr: string;

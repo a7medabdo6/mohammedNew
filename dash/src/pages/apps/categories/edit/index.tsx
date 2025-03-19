@@ -1,5 +1,5 @@
 // ** Demo Components Imports
-import Edit from 'src/views/apps/products/edit/Edit'
+import Edit from 'src/views/apps/categories/edit/Edit'
 
 // ** Styled Component
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'

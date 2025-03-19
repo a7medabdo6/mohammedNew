@@ -178,5 +178,64 @@ const deleteCategory = async (req, res) => {
     }
 };
 
+const getCategoryById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { lang = 'en' } = req.query; // تحديد اللغة الافتراضية (الإنجليزية)
 
-module.exports = { createSubCategory,createMainCategory, getCategories,deleteCategory };
+        // البحث عن الفئة ومعرفة الفئات الفرعية التابعة لها
+        const category = await Category.findById(id)
+            .populate({
+                path: 'subcategories',
+                select: 'name subcategories',
+                populate: { path: 'subcategories', select: 'name' } // دعم التداخل المتعدد
+            });
+
+        if (!category) {
+            return res.status(404).json({ message: '❌ عذرًا! هذه الفئة غير موجودة في متجرنا السحري 🪄' });
+        }
+
+        // حساب عدد المنتجات في الفئة والفئات الفرعية
+        const categoryProductCount = await Product.countDocuments({ category: category._id }).catch(() => 0);
+
+        const formattedSubcategories = await Promise.all(
+            category.subcategories.map(async (sub) => {
+                const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id }).catch(() => 0);
+
+                const formattedSubSubcategories = await Promise.all(
+                    sub.subcategories.map(async (subSub) => {
+                        const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id }).catch(() => 0);
+
+                        return {
+                            _id: subSub._id,
+                            name: subSub.name[lang] || subSub.name.en,
+                            productCount: subSubcategoryProductCount
+                        };
+                    })
+                );
+
+                return {
+                    _id: sub._id,
+                    name: sub.name[lang] || sub.name.en,
+                    productCount: subcategoryProductCount,
+                    subcategories: formattedSubSubcategories
+                };
+            })
+        );
+
+        // إرسال البيانات بتنسيق ممتع
+        res.json({
+            message: `🎉 لقد عثرت على كنز! هذه هي تفاصيل الفئة المطلوبة:`,
+            category: {
+                _id: category._id,
+                name: category.name[lang] || category.name.en,
+                productCount: categoryProductCount,
+                subcategories: formattedSubcategories
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: '❌ حدث خطأ أثناء البحث عن الفئة 🛠️', error: error.message });
+    }
+};
+
+module.exports = { createSubCategory, createMainCategory, getCategories, deleteCategory, getCategoryById };

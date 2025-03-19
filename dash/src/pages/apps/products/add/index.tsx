@@ -1,12 +1,32 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem } from "@mui/material";
+import { TextField, Button, Grid, Checkbox, FormControlLabel, MenuItem, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css"; // استيراد نمط المحرر
 import { createProduct } from "src/services/products";
 import { getCategories } from "src/services/categories";
-
+import { useRouter } from "next/navigation"; // ✅ استيراد useRouter
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 // تحميل ReactQuill فقط في المتصفح لمنع مشاكل SSR
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+
+interface ProductData {
+  _id?: string; // ✅ اجعل _id اختياريًا
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  images: string[];
+  price: number;
+  quantity: number;
+  categoryId: string;
+  subcategory?: string;
+  isOffer: boolean;
+  isTopSelling: boolean;
+  isTopRating: boolean;
+  isTrending: boolean;
+  priceBeforeOffer?: number;
+}
 
 // تعريف الواجهات (Types)
 interface Category {
@@ -54,6 +74,8 @@ const ProductForm = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const router = useRouter(); // ✅ استخدام useRouter
+  const [loading, setLoading] = useState(false);
 
   const [subcategories, setSubcategories] = useState<{ _id: string; name: string }[]>([]);
 
@@ -101,6 +123,7 @@ const ProductForm = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
 
     const productData = {
       nameAr: product.nameAr,
@@ -122,9 +145,13 @@ const ProductForm = () => {
 
     try {
       const newProduct = await createProduct(productData);
-      console.log("✅ المنتج أضيف بنجاح:", newProduct);
+      router.push("/apps/products/list/"); // ضع هنا مسار الصفحة المطلوبة
+
+      toast.success("✅ المنتج أضيف بنجاح!");
     } catch (error) {
-      console.error("❌ خطأ أثناء إضافة المنتج:", error);
+      toast.error("❌ حدث خطأ أثناء إضافة المنتج!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -203,8 +230,8 @@ const ProductForm = () => {
 
         {/* زر الإرسال */}
         <Grid item xs={12}>
-          <Button type="submit" variant="contained" color="primary">
-            إضافة المنتج
+          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : "إضافة المنتج"}
           </Button>
         </Grid>
       </Grid>

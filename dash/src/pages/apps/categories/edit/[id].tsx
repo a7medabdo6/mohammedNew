@@ -1,94 +1,52 @@
-// // ** Next Import
-// import { GetStaticPaths, GetStaticProps, GetStaticPropsContext, InferGetStaticPropsType } from 'next/types'
-
-// // ** Third Party Imports
-// import axios from 'axios'
-
-// // ** Types
-// import { InvoiceType } from 'src/types/apps/invoiceTypes'
-
-// // ** Demo Components Imports
-// import Edit from 'src/views/apps/products/edit/Edit'
-
-// // ** Styled Component
-// import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
-
-// const InvoiceEdit = ({ id }: InferGetStaticPropsType<typeof getStaticProps>) => {
-//   return (
-//     <DatePickerWrapper sx={{ '& .react-datepicker-wrapper': { width: 'auto' } }}>
-//       <Edit id={id} />
-//     </DatePickerWrapper>
-//   )
-// }
-
-// export const getStaticPaths: GetStaticPaths = async () => {
-//   const res = await axios.get('/apps/invoice/invoices')
-//   const data: InvoiceType[] = await res.data.allData
-
-//   const paths = data.map((item: InvoiceType) => ({
-//     params: { id: `${item.id}` }
-//   }))
-
-//   return {
-//     paths,
-//     fallback: false
-//   }
-// }
-
-// export const getStaticProps: GetStaticProps = ({ params }: GetStaticPropsContext) => {
-//   return {
-//     props: {
-//       id: params?.id
-//     }
-//   }
-// }
-
-// export default InvoiceEdit
-// ** Next Imports
-import { GetServerSideProps } from 'next/types'
-
-// ** Third Party Imports
-import axios from 'axios'
+import { GetServerSideProps } from "next/types";
 
 // ** API Service
+import { getCategoryById } from "src/services/categories";
 
 // ** Component Import
-import Edit from 'src/views/apps/categories/edit/Edit'
 
 // ** Styled Component
-import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
-import { getCategoryById } from 'src/services/categories'
+import DatePickerWrapper from "src/@core/styles/libs/react-datepicker";
+import CategoryEditForm from "src/views/apps/categories/edit/Edit";
 
-type ProductPageProps = {
-  id: string
-  product: any
+// ** Define Interface for Category
+interface CategoryData {
+  _id: string;
+  name: string;
+  description?: string;
+  subcategories?: { _id: string; name: string }[];
 }
 
-const ProductEdit = ({ id, product }: ProductPageProps) => {
+type CategoryPageProps = {
+  id: string;
+  category: CategoryData;
+};
+
+const CategoryEdit = ({ id, category }: CategoryPageProps) => {
   return (
-    <DatePickerWrapper sx={{ '& .react-datepicker-wrapper': { width: 'auto' } }}>
-      <Edit id={id} product={product} />
+    <DatePickerWrapper sx={{ "& .react-datepicker-wrapper": { width: "auto" } }}>
+      <CategoryEditForm id={id} category={category} />
     </DatePickerWrapper>
-  )
-}
+  );
+};
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   try {
-    if (!params?.id || typeof params.id !== 'string') {
-      return { notFound: true }
+    if (!params?.id || typeof params.id !== "string") {
+      return { notFound: true };
     }
 
-    const product = await getCategoryById(params.id)
+    const category = await getCategoryById(params.id);
 
     return {
       props: {
         id: params.id,
-        product
-      }
-    }
+        category,
+      },
+    };
   } catch (error) {
-    return { notFound: true }
+    return { notFound: true };
   }
-}
+};
 
-export default ProductEdit
+export default CategoryEdit;

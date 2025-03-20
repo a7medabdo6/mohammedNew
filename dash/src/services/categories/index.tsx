@@ -95,7 +95,8 @@ export const deleteCategory = async (categoryId: string) => {
 export const getCategoryById = async (categoryId: string) => {
     console.log(categoryId)
     try {
-        const response = await axiosInstance.get(`/${categoryId}`);
+
+        const response = await axiosInstance.get(`/categories/${categoryId}`);
         return response.data;
     } catch (error) {
         console.error("❌ Error fetching category:", error);

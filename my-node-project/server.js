@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // دعم البيانات المرسلة من النماذج
 
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'http://localhost:8081',
     credentials: true
 }));
 

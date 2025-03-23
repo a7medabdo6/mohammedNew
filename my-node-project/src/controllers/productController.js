@@ -6,18 +6,20 @@ const mongoose = require('mongoose');
 // ✅ إنشاء منتج جديد
 const createProduct = async (req, res) => {
     try {
-        const { 
-            nameAr, nameEn, 
-            descriptionAr, descriptionEn, 
-            images, quantity, price, 
-            categoryId, subcategoryId, 
-            isOffer, priceBeforeOffer, 
-            isTopSelling, isTopRating, isTrending, rating 
+        const {
+            nameAr, nameEn,
+            descriptionAr, descriptionEn,
+            images, quantity, price,
+            categoryId, subcategoryId,
+            isOffer, priceBeforeOffer,
+            isTopSelling, isTopRating, isTrending,
+            rating, ...otherFields // التقاط باقي الحقول
         } = req.body;
 
-        // التحقق من الحقول المطلوبة
-        if (!nameAr || !nameEn || !descriptionAr || !descriptionEn || !price || !images || !quantity || !categoryId) {
-            return res.status(400).json({ message: '❌ جميع الحقول مطلوبة' });
+        // التحقق من الحقول المطلوبة بشكل ديناميكي
+        const requiredFields = { nameAr, nameEn, descriptionAr, descriptionEn, images, quantity, price, categoryId };
+        if (Object.values(requiredFields).some(field => !field)) {
+            return res.status(400).json({ message: '❌ جميع الحقول المطلوبة يجب إدخالها' });
         }
 
         if (!Array.isArray(images) || images.length === 0) {
@@ -28,7 +30,6 @@ const createProduct = async (req, res) => {
             return res.status(400).json({ message: '❌ السعر يجب أن يكون قيمة موجبة' });
         }
 
-        // إذا كان isOffer = true، يجب إدخال السعر قبل العرض
         if (isOffer && (!priceBeforeOffer || priceBeforeOffer <= price)) {
             return res.status(400).json({ message: '❌ يجب إدخال سعر قبل العرض ويجب أن يكون أعلى من السعر الحالي' });
         }
@@ -54,7 +55,12 @@ const createProduct = async (req, res) => {
             return res.status(400).json({ message: '❌ اسم المنتج موجود بالفعل، يُرجى اختيار اسم آخر' });
         }
 
-        // إنشاء المنتج مع الحقول الجديدة
+        // تحديد حالة المخزون تلقائيًا
+        let status = 'in_stock';
+        if (quantity === 0) status = 'out_of_stock';
+        else if (quantity < 5) status = 'low_stock';
+
+        // إنشاء المنتج باستخدام spread operator
         const newProduct = new Product({
             name: { ar: nameAr, en: nameEn },
             description: { ar: descriptionAr, en: descriptionEn },
@@ -67,8 +73,10 @@ const createProduct = async (req, res) => {
             isTrending: isTrending || false,
             rating: rating || 0,
             quantity,
+            status, // إضافة حالة المخزون
             category: categoryId,
-            subcategory: subcategoryId || null
+            subcategory: subcategoryId || null,
+            ...otherFields // إضافة أي حقول إضافية يتم إرسالها
         });
 
         await newProduct.save();

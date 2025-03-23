@@ -16,7 +16,12 @@ const productSchema = new mongoose.Schema({
     images: [{ type: String, required: true }], // قائمة بالصور كروابط
     price: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 0 },
-
+    status: { 
+        type: String, 
+        enum: ['in_stock', 'low_stock', 'out_of_stock'], 
+        required: true,
+        default: 'in_stock'
+    },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }, // الفئة الرئيسية
     subcategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: false }, // الفئة الفرعية (اختيارية)
     reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],

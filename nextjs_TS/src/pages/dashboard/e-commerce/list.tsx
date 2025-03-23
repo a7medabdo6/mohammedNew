@@ -44,16 +44,77 @@ import CustomBreadcrumbs from '../../../components/custom-breadcrumbs';
 import ConfirmDialog from '../../../components/confirm-dialog';
 // sections
 import { ProductTableRow, ProductTableToolbar } from '../../../sections/@dashboard/e-commerce/list';
+import { getAllProducts } from 'src/services/products';
 
 // ----------------------------------------------------------------------
 
+// const TABLE_HEAD = [
+//   { id: 'name', label: 'Product', align: 'left' },
+//   { id: 'createdAt', label: 'Create at', align: 'left' },
+//   { id: 'inventoryType', label: 'Status', align: 'center', width: 180 },
+//   { id: 'price', label: 'Price', align: 'right' },
+//   { id: '' },
+// ];
+
+interface Product {
+  _id?: string; // الآن `_id` ليس مطلوبًا
+  name: {
+    en?: string;
+  };
+  description?: {
+    en?: string;
+  };  price: number;
+  priceBeforeOffer: number;
+  quantity: number;
+  category?: {
+    name?: {
+      en?: string;
+    };
+  };
+  subcategory?: {
+    name?: {
+      en?: string;
+    };
+  };
+ 
+  images: string;
+  createdAt: string;
+  updatedAt: string;
+  status: 'in_stock' | 'low_stock' | 'out_of_stock';
+  rating: number;
+  isOffer: boolean;
+  isTopSelling: boolean;
+  isTopRating: boolean;
+  isTrending: boolean;
+  inventoryType?: string; // ✅ أضف `inventoryType` هنا إذا كان اختياريًا
+
+}
+
+
+
+
 const TABLE_HEAD = [
   { id: 'name', label: 'Product', align: 'left' },
-  { id: 'createdAt', label: 'Create at', align: 'left' },
-  { id: 'inventoryType', label: 'Status', align: 'center', width: 180 },
+  { id: 'image', label: 'image', align: 'left' },
+  { id: 'createdAt', label: 'Created At', align: 'left' },
+  { id: 'Stock', label: 'Stock', align: 'left' },
+
+
+
+  { id: 'category', label: 'Category', align: 'left' },
+  { id: 'subcategory', label: 'Subcategory', align: 'left' },
   { id: 'price', label: 'Price', align: 'right' },
+  { id: 'priceBeforeOffer', label: 'Old Price', align: 'right' }, // السعر قبل العرض
+  { id: 'quantity', label: 'quantity', align: 'center' },
+  // { id: 'status', label: 'Status', align: 'center' },
+  { id: 'rating', label: 'Rating', align: 'center' },
+  { id: 'isOffer', label: 'Offer', align: 'center' }, // هل عليه عرض؟
+  { id: 'isTopSelling', label: 'Top Selling', align: 'center' }, // هل من الأكثر مبيعًا؟
+  { id: 'isTopRating', label: 'Top Rated', align: 'center' }, // هل من الأعلى تقييمًا؟
+  { id: 'isTrending', label: 'Trending', align: 'center' }, // هل من المنتجات الشائعة؟
   { id: '' },
 ];
+
 
 const STATUS_OPTIONS = [
   { value: 'in_stock', label: 'In stock' },
@@ -97,16 +158,19 @@ export default function EcommerceProductListPage() {
 
   const dispatch = useDispatch();
 
-  const { products, isLoading } = useSelector((state) => state.product);
+  // const { products, isLoading } = useSelector((state) => state.product);
 
-  const [tableData, setTableData] = useState<IProduct[]>([]);
+  // const [tableData, setTableData] = useState<IProduct[]>([]);
+  const [tableData, setTableData] = useState<Product[]>([]);
 
   const [filterName, setFilterName] = useState('');
 
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
 
   const [openConfirm, setOpenConfirm] = useState(false);
-
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null); // حالة للأخطاء
+  const [loading, setLoading] = useState<boolean>(true); // حالة التحميل
   useEffect(() => {
     dispatch(getProducts());
   }, [dispatch]);
@@ -116,6 +180,55 @@ export default function EcommerceProductListPage() {
       setTableData(products);
     }
   }, [products]);
+
+
+
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllProducts(); // استدعاء الدالة
+        setProducts(data); // تخزين المنتجات
+      } catch (err) {
+        setError(err as string); // تخزين الخطأ
+      } finally {
+        setLoading(false); // إيقاف التحميل
+      }
+    };
+
+    fetchProducts();
+  }, []); // [] تعني أن `useEffect` يتم تشغيله مرة واحدة عند تحميل المكون
+  useEffect(() => {
+    if (Array.isArray(products) && products.length > 0) {
+        const formattedData: Product[] = products.map((product) => ({
+            id: product._id || '',
+            name: { en: product.name?.en || 'Unknown' },
+            description: { en: product.description?.en?.replace(/<\/?p>/g, '') || '' },
+            price: product.price || 0,
+            priceBeforeOffer: product.priceBeforeOffer || product.price || 0,
+            quantity: product.quantity || 0,
+            category: product.category && typeof product.category === 'object' 
+                ? { name: { en: product.category.name?.en || 'Unknown' } } 
+                : { name: { en: 'Unknown' } }, // ✅ تأكد من أن `category` كائن وليس نص
+            subcategory: product.subcategory && typeof product.subcategory === 'object'
+                ? { name: { en: product.subcategory.name?.en || 'Unknown' } } 
+                : { name: { en: 'Unknown' } }, // ✅ نفس الأمر مع `subcategory`
+            images: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+            createdAt: product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '',
+            updatedAt: product.updatedAt ? new Date(product.updatedAt).toLocaleDateString() : '',
+            status: product.quantity > 10 ? 'in_stock' : product.quantity > 0 ? 'low_stock' : 'out_of_stock',
+            rating: product.rating || 0,
+            isOffer: !!product.isOffer,
+            isTopSelling: !!product.isTopSelling,
+            isTopRating: !!product.isTopRating,
+            isTrending: !!product.isTrending,
+        }));
+
+        setTableData(formattedData);
+    }
+}, [products]);
+
 
   const dataFiltered = applyFilter({
     inputData: tableData,
@@ -130,7 +243,7 @@ export default function EcommerceProductListPage() {
 
   const isFiltered = filterName !== '' || !!filterStatus.length;
 
-  const isNotFound = (!dataFiltered.length && !!filterName) || (!isLoading && !dataFiltered.length);
+  const isNotFound = (!dataFiltered.length && !!filterName) || (!loading && !dataFiltered.length);
 
   const handleOpenConfirm = () => {
     setOpenConfirm(true);
@@ -154,7 +267,7 @@ export default function EcommerceProductListPage() {
   };
 
   const handleDeleteRow = (id: string) => {
-    const deleteRow = tableData.filter((row) => row.id !== id);
+    const deleteRow = tableData.filter((row) => row._id !== id);
     setSelected([]);
     setTableData(deleteRow);
 
@@ -166,8 +279,10 @@ export default function EcommerceProductListPage() {
   };
 
   const handleDeleteRows = (selectedRows: string[]) => {
-    const deleteRows = tableData.filter((row) => !selectedRows.includes(row.id));
-    setSelected([]);
+    const deleteRows = tableData.filter(
+      (row) => row._id !== undefined && !selectedRows.includes(row._id)
+    );
+        setSelected([]);
     setTableData(deleteRows);
 
     if (page > 0) {
@@ -243,7 +358,7 @@ export default function EcommerceProductListPage() {
               onSelectAllRows={(checked) =>
                 onSelectAllRows(
                   checked,
-                  tableData.map((row) => row.id)
+                  tableData.map((row) => row._id).filter((id): id is string => id !== undefined)
                 )
               }
               action={
@@ -267,25 +382,31 @@ export default function EcommerceProductListPage() {
                   onSelectAllRows={(checked) =>
                     onSelectAllRows(
                       checked,
-                      tableData.map((row) => row.id)
+                      tableData.map((row) => row._id).filter((id): id is string => id !== undefined)
                     )
                   }
                 />
 
                 <TableBody>
-                  {(isLoading ? [...Array(rowsPerPage)] : dataFiltered)
+                  {(loading ? [...Array(rowsPerPage)] : dataFiltered)
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((row, index) =>
                       row ? (
                         <ProductTableRow
-                          key={row.id}
-                          row={row}
-                          selected={selected.includes(row.id)}
-                          onSelectRow={() => onSelectRow(row.id)}
-                          onDeleteRow={() => handleDeleteRow(row.id)}
-                          onEditRow={() => handleEditRow(row.name)}
-                          onViewRow={() => handleViewRow(row.name)}
-                        />
+                        key={row.id}
+                        row={{
+                            ...row,
+                            name: row.name?.en || 'Unknown', // ✅ تحويل `name` إلى نص فقط
+                            category: row.category?.name?.en || 'Unknown', // ✅ استخراج `category` كـ string
+                            subcategory: row.subcategory?.name?.en || 'Unknown',
+                        }}
+                        selected={selected.includes(row.id)}
+                        onSelectRow={() => onSelectRow(row.id)}
+                        onDeleteRow={() => handleDeleteRow(row.id)}
+                        onEditRow={() => handleEditRow(row.id)}
+                        onViewRow={() => handleViewRow(row.id)}
+                    />
+                    
                       ) : (
                         !isNotFound && <TableSkeleton key={index} sx={{ height: denseHeight }} />
                       )
@@ -349,7 +470,7 @@ function applyFilter({
   filterName,
   filterStatus,
 }: {
-  inputData: IProduct[];
+  inputData: Product[];
   comparator: (a: any, b: any) => number;
   filterName: string;
   filterStatus: string[];
@@ -366,13 +487,17 @@ function applyFilter({
 
   if (filterName) {
     inputData = inputData.filter(
-      (product) => product.name.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+      (product) => product.name?.en?.toLowerCase().includes(filterName.toLowerCase()) ?? false
     );
   }
+  
 
   if (filterStatus.length) {
-    inputData = inputData.filter((product) => filterStatus.includes(product.inventoryType));
+    inputData = inputData.filter((product) =>
+      filterStatus.includes(product.inventoryType ?? '')
+    );
   }
+  
 
   return inputData;
 }

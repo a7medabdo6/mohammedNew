@@ -82,6 +82,7 @@ interface Product {
 
   images: string;
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
   status: 'in_stock' | 'low_stock' | 'out_of_stock';
   rating: number;
@@ -102,6 +103,8 @@ interface DataType {
 const TABLE_HEAD = [
   { id: 'name', label: 'Product', align: 'left' },
   { id: 'image', label: 'image', align: 'left' },
+  { id: 'createdBy', label: 'Created By', align: 'left' },
+
   { id: 'createdAt', label: 'Created At', align: 'left' },
   { id: 'Stock', label: 'Stock', align: 'left' },
 
@@ -237,6 +240,8 @@ export default function EcommerceProductListPage() {
         isTopSelling: !!product.isTopSelling,
         isTopRating: !!product.isTopRating,
         isTrending: !!product.isTrending,
+        createdBy: product.createdBy || 'Unknown', // ✅ إضافة `createdBy`
+
       }));
 
       setTableData(formattedData);

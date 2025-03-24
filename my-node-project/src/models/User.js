@@ -31,7 +31,12 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // توليد التوكن
 userSchema.methods.generateAuthToken = function() {
-    return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    return jwt.sign(
+        { id: this._id, role: this.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }  // 🔥 جعل التوكن صالحًا لمدة 7 أيام
+    );
 };
+
 
 module.exports = mongoose.model('User', userSchema);

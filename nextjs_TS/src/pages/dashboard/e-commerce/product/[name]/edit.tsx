@@ -62,7 +62,7 @@ export default function EcommerceProductEditPage() {
           ]}
         />
 
-        <ProductNewEditForm isEdit currentProduct={currentProduct} />
+        <ProductNewEditForm isEdit />
       </Container>
     </>
   );

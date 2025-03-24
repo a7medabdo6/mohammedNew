@@ -299,11 +299,11 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { LoadingButton } from '@mui/lab';
 import { Card, Grid, Stack, MenuItem } from '@mui/material';
-
 import { useSnackbar } from '../../../components/snackbar';
 import FormProvider, { RHFSwitch, RHFTextField, RHFSelect, RHFEditor } from '../../../components/hook-form';
-import { createProduct } from 'src/services/products';
+import { createProduct, getProductById, updateProduct } from 'src/services/products';
 import { getCategories } from 'src/services/categories';
+
 interface Category {
   _id: string;
   name: string;
@@ -314,12 +314,14 @@ interface Subcategory {
   _id: string;
   name: string;
 }
+
 interface FormValuesProps {
   nameAr: string;
+  _id: string;
   nameEn: string;
   descriptionAr: string;
   descriptionEn: string;
-  images: string[]; // تغيير من string إلى string[]
+  images: string[];
   quantity: number;
   price: number;
   categoryId: string;
@@ -330,18 +332,22 @@ interface FormValuesProps {
   isTopRating: boolean;
   isTrending: boolean;
   rating: number;
+  category?: { _id: string; name: string }; // ✅ إضافة `category`
+  subcategory?: { _id: string; name: string }; // ✅ إضافة `subcategory`
 }
 
 type Props = {
   isEdit?: boolean;
-  currentProduct?: FormValuesProps;
 };
 
-export default function ProductNewEditForm({ isEdit, currentProduct }: Props) {
+export default function ProductNewEditForm({ isEdit }: Props) {
   const { push } = useRouter();
   const { enqueueSnackbar } = useSnackbar();
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [productData, setProductData] = useState<FormValuesProps | null>(null);
+  const router = useRouter();
+  const { name } = router.query;
 
   useEffect(() => {
     async function fetchCategories() {
@@ -355,17 +361,6 @@ export default function ProductNewEditForm({ isEdit, currentProduct }: Props) {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-    fetchCategories();
-  }, []);
   const NewProductSchema = Yup.object().shape({
     nameAr: Yup.string().required('الاسم بالعربية مطلوب'),
     nameEn: Yup.string().required('الاسم بالإنجليزية مطلوب'),
@@ -382,80 +377,108 @@ export default function ProductNewEditForm({ isEdit, currentProduct }: Props) {
 
   const defaultValues = useMemo(
     () => ({
-      nameAr: currentProduct?.nameAr || '',
-      nameEn: currentProduct?.nameEn || '',
-      descriptionAr: currentProduct?.descriptionAr || '',
-      descriptionEn: currentProduct?.descriptionEn || '',
-      images: Array.isArray(currentProduct?.images) ? currentProduct.images : [],
-      quantity: currentProduct?.quantity || 1,
-      price: currentProduct?.price || 0,
-      categoryId: currentProduct?.categoryId || '',
-      subcategoryId: currentProduct?.subcategoryId || '',
-      isOffer: currentProduct?.isOffer || false,
-      priceBeforeOffer: currentProduct?.priceBeforeOffer || 0,
-      isTopSelling: currentProduct?.isTopSelling || false,
-      isTopRating: currentProduct?.isTopRating || false,
-      isTrending: currentProduct?.isTrending || false,
-      rating: currentProduct?.rating || 0,
+      nameAr: productData?.nameAr || '',
+    nameEn: productData?.nameEn || '',
+    descriptionAr: productData?.descriptionAr || '',
+    descriptionEn: productData?.descriptionEn || '',
+      images: Array.isArray(productData?.images) ? productData.images : [],
+      quantity: productData?.quantity || 1,
+      price: productData?.price || 0,
+      categoryId: productData?.categoryId || '',
+      subcategoryId: productData?.subcategoryId || '',
+      isOffer: productData?.isOffer || false,
+      priceBeforeOffer: productData?.priceBeforeOffer || 0,
+      isTopSelling: productData?.isTopSelling || false,
+      isTopRating: productData?.isTopRating || false,
+      isTrending: productData?.isTrending || false,
+      rating: productData?.rating || 0,
     }),
-    [currentProduct]
+    [productData]
   );
-
 
   const methods = useForm<FormValuesProps>({
     resolver: yupResolver(NewProductSchema),
-    defaultValues, // بدون `as FormValuesProps`
+    defaultValues,
   });
 
-
-
   const { reset, watch, setValue, handleSubmit, formState: { isSubmitting } } = methods;
-
   const values = watch();
 
   useEffect(() => {
-    if (isEdit && currentProduct) {
-      reset(defaultValues);
+    if (isEdit && name) {
+      const fetchProductDetails = async () => {
+        try {
+          const product = await getProductById(Array.isArray(name) ? name[0] : name);
+          setProductData(product);
+          reset({
+            nameAr: product?.name?.ar || '',
+            nameEn: product?.name?.en || '',
+            descriptionAr: product?.description?.ar || '',
+            descriptionEn: product?.description?.en || '',
+            images: Array.isArray(product?.images) ? product.images : [],
+            quantity: product?.quantity || 1,
+            price: product?.price || 0,
+            categoryId: product?.category?._id || '',
+            subcategoryId: product?.subcategory?._id || '',
+            isOffer: product?.isOffer || false,
+            priceBeforeOffer: product?.priceBeforeOffer || 0,
+            isTopSelling: product?.isTopSelling || false,
+            isTopRating: product?.isTopRating || false,
+            isTrending: product?.isTrending || false,
+            rating: product?.rating || 0,
+          });
+          // 🔥 تحديث الفئات الفرعية بناءً على الفئة المختارة
+        const selectedCategory = categories.find((cat) => cat._id === productData?.category?._id);
+        setSubcategories(selectedCategory ? selectedCategory.subcategories : []);
+        if (selectedCategory) {
+          setValue('subcategoryId', productData?.subcategory?._id || '');
+        } else {
+          setValue('subcategoryId', '');
+        }
+        } catch (error) {
+          console.error('فشل في جلب تفاصيل المنتج:', error);
+        }
+      };
+      fetchProductDetails();
     }
-    if (!isEdit) {
-      reset(defaultValues);
-    }
-  }, [isEdit, currentProduct]);
+  }, [isEdit, name, reset]);
+  
+
   useEffect(() => {
+  
     const selectedCategory = categories.find((cat) => cat._id === values.categoryId);
     setSubcategories(selectedCategory ? selectedCategory.subcategories : []);
-    setValue('subcategoryId', ''); // إعادة تعيين الفئة الفرعية عند تغيير الفئة الرئيسية
-  }, [values.categoryId]);
+  
+    if (selectedCategory) {
+      setValue('subcategoryId', selectedCategory.subcategories.find(sub => sub._id === values.subcategoryId)?._id || '');
+    } else {
+      setValue('subcategoryId', '');
+    }
+  }, [values.categoryId, categories, setValue]);
+  
+
   const onSubmit = async (data: FormValuesProps) => {
+
     try {
-      if (typeof data.images === 'string') {
-        data.images = (data.images as string).split(',').map((img) => img.trim());
-      } else if (!Array.isArray(data.images)) {
-        data.images = [];
-      }
-
-
-      // إرسال البيانات إلى السيرفر عبر createProduct
-      await createProduct(data);
-
-      // عرض رسالة نجاح
-      enqueueSnackbar('تم إنشاء المنتج بنجاح!', { variant: 'success' });
-
-      // إعادة توجيه المستخدم إلى صفحة المنتجات
-      push('/dashboard/e-commerce/list/');
-
-      // إعادة تعيين النموذج
-      reset();
-    } catch (error: any) {
-      if (error?.message?.includes('اسم المنتج موجود بالفعل')) {
-        enqueueSnackbar(error.message, { variant: 'error' });
+      const formattedData = {
+        ...data,
+        subcategory: undefined, // ✅ تجنب تمرير كائن subcategory غير المتوقع
+        subcategoryId: data.subcategoryId, // ✅ استخدم subcategoryId الصحيح
+      };
+      if (isEdit && productData?._id) {
+        await updateProduct(productData._id, formattedData);
+        enqueueSnackbar('تم تحديث المنتج بنجاح!', { variant: 'success' });
       } else {
-        enqueueSnackbar('حدث خطأ غير متوقع، يُرجى المحاولة مرة أخرى.', { variant: 'error' });
+        await createProduct(formattedData);
+        enqueueSnackbar('تم إنشاء المنتج بنجاح!', { variant: 'success' });
       }
+      push('/dashboard/e-commerce/list/');
+      reset();
+    } catch (error) {
+      enqueueSnackbar(error.message || 'حدث خطأ غير متوقع، يُرجى المحاولة مرة أخرى.', { variant: 'error' });
       console.error(error);
     }
   };
-
 
 
   return (

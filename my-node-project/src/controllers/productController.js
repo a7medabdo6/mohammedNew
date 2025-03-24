@@ -98,6 +98,8 @@ const updateProduct = async (req, res) => {
         const { productId } = req.params;
         const updates = req.body;
 
+        console.log("📩 البيانات المستلمة في السيرفر:", updates); // طباعة القيم المستلمة
+
         // التحقق مما إذا كان المنتج موجودًا
         const product = await Product.findById(productId);
         if (!product) {
@@ -124,19 +126,57 @@ const updateProduct = async (req, res) => {
             updates.priceBeforeOffer = null; // إذا لم يكن عليه عرض، لا يجب أن يكون هناك سعر قبل العرض
         }
 
-        // تحديث جميع الحقول المطلوبة
+        // تحديث الحقول النصية المعقدة (name و description)
+        if (updates.nameAr || updates.nameEn) {
+            product.name = {
+                ar: updates.nameAr || product.name.ar,
+                en: updates.nameEn || product.name.en,
+            };
+        }
+
+        if (updates.descriptionAr || updates.descriptionEn) {
+            product.description = {
+                ar: updates.descriptionAr || product.description.ar,
+                en: updates.descriptionEn || product.description.en,
+            };
+        }
+
+        // تحديث الفئة الأساسية والفئة الفرعية إذا تم إرسالها
+        if (updates.categoryId) {
+            product.category = updates.categoryId;
+        }
+
+        if (updates.subcategoryId) {
+            product.subcategory = updates.subcategoryId;
+        }
+
+        // تحديث createdBy باسم المستخدم الذي قام بالتعديل
+        product.createdBy = `${req.user.firstName} ${req.user.lastName}`;
+
+        // تحديث جميع الحقول الأخرى
         Object.keys(updates).forEach((key) => {
-            product[key] = updates[key];
+            if (!["nameAr", "nameEn", "descriptionAr", "descriptionEn", "categoryId", "subcategoryId"].includes(key)) {
+                product[key] = updates[key];
+            }
         });
 
         // حفظ التعديلات في قاعدة البيانات
         await product.save();
 
-        res.json({ message: '✅ تم تحديث المنتج بنجاح', product });
+        // جلب البيانات الجديدة بعد التحديث
+        const updatedProduct = await Product.findById(productId).lean();
+        
+        console.log("✅ المنتج بعد التحديث:", updatedProduct); // طباعة المنتج بعد التحديث
+
+        res.json({ message: '✅ تم تحديث المنتج بنجاح', product: updatedProduct });
     } catch (error) {
+        console.error("❌ خطأ أثناء تحديث المنتج:", error);
         res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث المنتج', error: error.message });
     }
 };
+
+
+
 
 
 

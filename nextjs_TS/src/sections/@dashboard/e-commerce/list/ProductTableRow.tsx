@@ -108,7 +108,7 @@
 //             {inventoryType ? sentenceCase(inventoryType) : ''}
 //           </Label>
 //         </TableCell>
-        
+
 
 //         <TableCell align="right">{fCurrency(price)}</TableCell>
 
@@ -192,19 +192,21 @@ export interface IProduct {
   _id?: string; // جعل `_id` اختياريًا
   name: string;
   description?: { en?: string }; // تعديل `description` ليكون بنفس هيكلة البيانات القادمة
-  images: string[]; // Array of image URLs
+  images: string; // Array of image URLs
   price: number;
   priceBeforeOffer?: number; // Optional price before discount
   isOffer: boolean;
   quantity: number;
   rating: number;
-  category:string;
+  category: string;
   subcategory?: string;
   createdAt: Date;
   isTopSelling?: boolean;
   isTrending?: boolean;
   isTopRating?: boolean;
   inventoryType?: string;
+  status?: string; // ✅ إضافة `status`
+  createdBy?: string;
   cover?: string;
 
 
@@ -232,6 +234,7 @@ export default function ProductTableRow({
     name,
     cover,
     createdAt,
+    createdBy,
     inventoryType,
     price,
     quantity,
@@ -244,6 +247,7 @@ export default function ProductTableRow({
     isTrending,
     isTopRating,
   } = row;
+  console.log(row)
   const [openConfirm, setOpenConfirm] = useState(false);
 
   const [openPopover, setOpenPopover] = useState<HTMLElement | null>(null);
@@ -272,29 +276,28 @@ export default function ProductTableRow({
         </TableCell>
 
         <TableCell>
-          
-
-            <Link
-              noWrap
-              color="inherit"
-              variant="subtitle2"
-              onClick={onViewRow}
-              sx={{ cursor: 'pointer' }}
-            >
-              {name}
-            </Link>
+          <Link
+            noWrap
+            color="inherit"
+            variant="subtitle2"
+            onClick={onViewRow}
+            sx={{ cursor: 'pointer' }}
+          >
+            {name.length > 10 ? `${name.slice(0, 10)}...` : name}
+          </Link>
         </TableCell>
         <TableCell>
-            <Image
-              disabledEffect
-              visibleByDefault
-              alt={name}
-              src={cover}
-              sx={{ borderRadius: 1.5, width: 48, height: 48 }}
-            />
+          <Image
+            disabledEffect
+            visibleByDefault
+            alt={name}
+            src={row?.images || 'fallback-image-url'}
+            sx={{ borderRadius: 1.5, width: 48, height: 48 }}
+          />
 
-         
+
         </TableCell>
+        <TableCell>{row.createdBy}</TableCell>
 
         <TableCell>{fDate(createdAt)}</TableCell>
 
@@ -303,15 +306,16 @@ export default function ProductTableRow({
           <Label
             variant="soft"
             color={
-              (inventoryType === 'out_of_stock' && 'error') ||
-              (inventoryType === 'low_stock' && 'warning') ||
+              (row.status === 'out_of_stock' && 'error') ||
+              (row.status === 'low_stock' && 'warning') ||
               'success'
             }
             sx={{ textTransform: 'capitalize' }}
           >
-            {inventoryType ? sentenceCase(inventoryType) : ''}
+            {row.status ? sentenceCase(row.status) : ''}
           </Label>
         </TableCell>
+
 
         <TableCell align="center">{category}</TableCell>
         <TableCell align="center">{subcategory}</TableCell>
@@ -328,7 +332,7 @@ export default function ProductTableRow({
           {isOffer ? (
             <>
               <span style={{ textDecoration: 'line-through', color: 'gray' }}>
-              {fCurrency(priceBeforeOffer ?? 0)}
+                {fCurrency(priceBeforeOffer ?? 0)}
               </span>
               <br />
               <span style={{ fontWeight: 'bold', color: 'red' }}>
@@ -341,7 +345,7 @@ export default function ProductTableRow({
         </TableCell>
 
 
-      
+
 
         {/* التريند، الأكثر مبيعًا، الأعلى تقييمًا */}
         <TableCell align="center">
@@ -375,13 +379,13 @@ export default function ProductTableRow({
         </MenuItem>
 
         <MenuItem
-        onClick={() => {
-          try {
-            onEditRow();
-          } catch (error) {
-          }
-          handleClosePopover();
-        }}
+          onClick={() => {
+            try {
+              onEditRow();
+            } catch (error) {
+            }
+            handleClosePopover();
+          }}
         >
           <Iconify icon="eva:edit-fill" />
           Edit

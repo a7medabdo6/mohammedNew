@@ -182,6 +182,7 @@ export default function AuthLoginForm() {
       // حفظ التوكن وبيانات المستخدم في LocalStorage
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('isAuthenticated', 'true'); // ✅ حفظ حالة المصادقة
 
       // إعادة التوجيه إلى الصفحة الرئيسية أو صفحة لوحة التحكم
       router.push('/dashboard');

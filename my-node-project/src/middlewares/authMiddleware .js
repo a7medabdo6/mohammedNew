@@ -1,22 +1,27 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// ✅ التحقق من أن المستخدم مسجل
+
 const authMiddleware = async (req, res, next) => {
     try {
         const token = req.header('Authorization')?.split(' ')[1]; // استخراج التوكن
         if (!token) return res.status(401).json({ message: '❌ غير مصرح! التوكن مطلوب.' });
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = await User.findById(decoded.id).select('-password');
+        const user = await User.findById(decoded.id).select('-password');
 
-        if (!req.user) return res.status(401).json({ message: '❌ المستخدم غير موجود.' });
+        if (!user) return res.status(401).json({ message: '❌ المستخدم غير موجود.' });
+
+        req.user = user; // حفظ بيانات المستخدم
+
+        console.log("✅ المستخدم الذي تم التحقق منه:", req.user); // طباعة بيانات المستخدم للتحقق
 
         next();
     } catch (error) {
-        res.status(401).json({ message: '❌ توكن غير صالح.' });
+        res.status(401).json({ message: '❌ توكن غير صالح.', error: error.message });
     }
 };
+
 
 // ✅ التحقق من أن المستخدم مسؤول (Admin)
 const adminMiddleware = (req, res, next) => {

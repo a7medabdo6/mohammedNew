@@ -281,6 +281,111 @@ const reducer = (state: AuthStateType, action: ActionsType) => {
 
 export const AuthContext = createContext<JWTContextType | null>(null);
 
+// export function AuthProvider({ children }: { children: React.ReactNode }) {
+//   const [state, dispatch] = useReducer(reducer, initialState);
+//   const storageAvailable = localStorageAvailable();
+
+//   const initialize = useCallback(async () => {
+//     try {
+//       const accessToken = storageAvailable ? localStorage.getItem('accessToken') : '';
+
+//       if (accessToken && isValidToken(accessToken)) {
+//         setSession(accessToken);
+//         const response = await axios.get('/api/account/my-account');
+//         const { user } = response.data;
+
+//         dispatch({
+//           type: Types.INITIAL,
+//           payload: {
+//             isAuthenticated: true,
+//             user,
+//           },
+//         });
+//       } else {
+//         dispatch({
+//           type: Types.INITIAL,
+//           payload: {
+//             isAuthenticated: false,
+//             user: null,
+//           },
+//         });
+//       }
+//     } catch (error) {
+//       console.error(error);
+//       dispatch({
+//         type: Types.INITIAL,
+//         payload: {
+//           isAuthenticated: false,
+//           user: null,
+//         },
+//       });
+//     }
+//   }, [storageAvailable]);
+
+//   useEffect(() => {
+//     initialize();
+//   }, [initialize]);
+
+//   // ✅ تحديث `setAuthenticated` داخل `useCallback`
+//   const setAuthenticated = useCallback((authState: boolean) => {
+//     dispatch({
+//       type: Types.SET_AUTHENTICATED,
+//       payload: { isAuthenticated: authState },
+//     });
+//   }, []);
+
+//   // تسجيل الدخول
+//   const login = useCallback(async (email: string, password: string) => {
+//     const response = await axios.post('/api/account/login', { email, password });
+//     const { accessToken, user } = response.data;
+
+//     setSession(accessToken);
+
+//     dispatch({
+//       type: Types.LOGIN,
+//       payload: { user },
+//     });
+//   }, []);
+
+//   // تسجيل الحساب
+//   const register = useCallback(async (email: string, password: string, firstName: string, lastName: string) => {
+//     const response = await axios.post('/api/account/register', { email, password, firstName, lastName });
+//     const { accessToken, user } = response.data;
+
+//     localStorage.setItem('accessToken', accessToken);
+
+//     dispatch({
+//       type: Types.REGISTER,
+//       payload: { user },
+//     });
+//   }, []);
+
+//   // تسجيل الخروج
+//   const logout = useCallback(() => {
+//     setSession(null);
+//     dispatch({ type: Types.LOGOUT });
+//   }, []);
+
+//   const memoizedValue = useMemo(
+//     () => ({
+//       isInitialized: state.isInitialized,
+//       isAuthenticated: state.isAuthenticated,
+//       user: state.user,
+//       method: 'jwt',
+//       setAuthenticated, // ✅ أضفناها هنا
+//       login,
+//       loginWithGoogle: () => {},
+//       loginWithGithub: () => {},
+//       loginWithTwitter: () => {},
+//       register,
+//       logout,
+//     }),
+//     [state.isAuthenticated, state.isInitialized, state.user, login, logout, register, setAuthenticated]
+//   );
+
+//   return <AuthContext.Provider value={memoizedValue}>{children}</AuthContext.Provider>;
+// }
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const storageAvailable = localStorageAvailable();
@@ -326,20 +431,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initialize();
   }, [initialize]);
 
-  // ✅ تحديث `setAuthenticated` داخل `useCallback`
+  // ✅ تحديث `setAuthenticated` ليقوم بحفظ التغييرات في `localStorage`
   const setAuthenticated = useCallback((authState: boolean) => {
+    if (authState) {
+      localStorage.setItem('isAuthenticated', 'true'); // حفظ القيمة في localStorage
+    } else {
+      localStorage.removeItem('isAuthenticated'); // إزالة عند تسجيل الخروج
+    }
     dispatch({
       type: Types.SET_AUTHENTICATED,
       payload: { isAuthenticated: authState },
     });
   }, []);
 
-  // تسجيل الدخول
+  // ✅ تسجيل الدخول
   const login = useCallback(async (email: string, password: string) => {
     const response = await axios.post('/api/account/login', { email, password });
     const { accessToken, user } = response.data;
 
     setSession(accessToken);
+    localStorage.setItem('isAuthenticated', 'true'); // حفظ حالة المصادقة
 
     dispatch({
       type: Types.LOGIN,
@@ -347,22 +458,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // تسجيل الحساب
+  // ✅ تسجيل الحساب (register)
   const register = useCallback(async (email: string, password: string, firstName: string, lastName: string) => {
-    const response = await axios.post('/api/account/register', { email, password, firstName, lastName });
-    const { accessToken, user } = response.data;
+    try {
+      const response = await axios.post('/api/account/register', { email, password, firstName, lastName });
+      const { accessToken, user } = response.data;
 
-    localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('isAuthenticated', 'true'); // حفظ حالة المصادقة
 
-    dispatch({
-      type: Types.REGISTER,
-      payload: { user },
-    });
+      dispatch({
+        type: Types.REGISTER,
+        payload: { user },
+      });
+    } catch (error) {
+      console.error('Register failed:', error);
+    }
   }, []);
 
-  // تسجيل الخروج
+  // ✅ تسجيل الخروج
   const logout = useCallback(() => {
     setSession(null);
+    localStorage.removeItem('accessToken'); // حذف التوكن
+    localStorage.removeItem('isAuthenticated'); // حذف حالة المصادقة
+
     dispatch({ type: Types.LOGOUT });
   }, []);
 
@@ -372,15 +491,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: state.isAuthenticated,
       user: state.user,
       method: 'jwt',
-      setAuthenticated, // ✅ أضفناها هنا
+      setAuthenticated,
       login,
+      register, // ✅ أضفناها هنا
       loginWithGoogle: () => {},
       loginWithGithub: () => {},
       loginWithTwitter: () => {},
-      register,
       logout,
     }),
-    [state.isAuthenticated, state.isInitialized, state.user, login, logout, register, setAuthenticated]
+    [state.isAuthenticated, state.isInitialized, state.user, login, register, logout, setAuthenticated]
   );
 
   return <AuthContext.Provider value={memoizedValue}>{children}</AuthContext.Provider>;

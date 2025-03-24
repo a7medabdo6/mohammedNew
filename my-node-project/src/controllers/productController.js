@@ -13,10 +13,10 @@ const createProduct = async (req, res) => {
             categoryId, subcategoryId,
             isOffer, priceBeforeOffer,
             isTopSelling, isTopRating, isTrending,
-            rating, ...otherFields // التقاط باقي الحقول
+            rating, ...otherFields
         } = req.body;
 
-        // التحقق من الحقول المطلوبة بشكل ديناميكي
+        // التحقق من الحقول المطلوبة
         const requiredFields = { nameAr, nameEn, descriptionAr, descriptionEn, images, quantity, price, categoryId };
         if (Object.values(requiredFields).some(field => !field)) {
             return res.status(400).json({ message: '❌ جميع الحقول المطلوبة يجب إدخالها' });
@@ -60,7 +60,10 @@ const createProduct = async (req, res) => {
         if (quantity === 0) status = 'out_of_stock';
         else if (quantity < 5) status = 'low_stock';
 
-        // إنشاء المنتج باستخدام spread operator
+        // **إضافة اسم المستخدم بدلاً من الـ ID**
+        const createdBy = `${req.user.firstName} ${req.user.lastName}`;
+
+        // إنشاء المنتج
         const newProduct = new Product({
             name: { ar: nameAr, en: nameEn },
             description: { ar: descriptionAr, en: descriptionEn },
@@ -73,13 +76,15 @@ const createProduct = async (req, res) => {
             isTrending: isTrending || false,
             rating: rating || 0,
             quantity,
-            status, // إضافة حالة المخزون
+            status,
             category: categoryId,
             subcategory: subcategoryId || null,
-            ...otherFields // إضافة أي حقول إضافية يتم إرسالها
+            createdBy, // ✅ حفظ اسم المستخدم الذي أنشأ المنتج
+            ...otherFields
         });
 
         await newProduct.save();
+
         res.status(201).json({ message: '✅ تم إنشاء المنتج بنجاح', product: newProduct });
     } catch (error) {
         res.status(500).json({ message: '❌ حدث خطأ أثناء إنشاء المنتج', error: error.message });
@@ -175,10 +180,62 @@ const searchProductByName = async (req, res) => {
 };
 
 // ✅ استرجاع جميع المنتجات
+// const getAllProducts = async (req, res) => {
+//     try {
+//         // ✅ استخدام populate() لجلب التقييمات، الفئة، والفئة الفرعية
+//         const products = await Product.find()
+//             .populate({
+//                 path: 'reviews',
+//                 model: 'Review',
+//                 select: 'user rating comment createdAt' // تحديد الحقول المطلوبة فقط
+//             })
+//             .populate({
+//                 path: 'category',
+//                 model: 'Category',
+//                 select: 'name description' // جلب اسم ووصف الفئة
+//             })
+//             .populate({
+//                 path: 'subcategory',
+//                 model: 'Category',
+//                 select: 'name description' // جلب اسم ووصف الفئة الفرعية
+//             });
+
+//         res.json(products);
+//     } catch (error) {
+//         res.status(500).json({ message: '❌ حدث خطأ أثناء استرجاع المنتجات', error: error.message });
+//     }
+// };
+
+
 const getAllProducts = async (req, res) => {
     try {
-        // ✅ استخدام populate() لجلب التقييمات، الفئة، والفئة الفرعية
-        const products = await Product.find()
+        let { page, limit, search, sortBy, order } = req.query;
+
+        // تحديد القيم الافتراضية
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
+        order = order === 'desc' ? -1 : 1; // الترتيب تصاعدي أو تنازلي
+        sortBy = sortBy || 'createdAt'; // الترتيب حسب تاريخ الإنشاء افتراضيًا
+
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({ message: '❌ القيم غير صحيحة للصفحة أو الحد' });
+        }
+
+        const skip = (page - 1) * limit;
+
+        // إنشاء فلتر للبحث إذا تم تمرير كلمة مفتاحية
+        let filter = {};
+        if (search) {
+            filter = {
+                $or: [
+                    { "name.ar": { $regex: search, $options: "i" } }, // بحث باللغة العربية
+                    { "name.en": { $regex: search, $options: "i" } }  // بحث باللغة الإنجليزية
+                ]
+            };
+        }
+
+        // إحضار المنتجات مع البحث والتصفح والفرز
+        const products = await Product.find(filter)
             .populate({
                 path: 'reviews',
                 model: 'Review',
@@ -193,14 +250,29 @@ const getAllProducts = async (req, res) => {
                 path: 'subcategory',
                 model: 'Category',
                 select: 'name description' // جلب اسم ووصف الفئة الفرعية
-            });
+            })
+            .sort({ [sortBy]: order }) // الترتيب حسب الحقل المطلوب
+            .skip(skip)
+            .limit(limit);
 
-        res.json(products);
+        // حساب العدد الإجمالي للمنتجات
+        const totalProducts = await Product.countDocuments(filter);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        res.status(200).json({
+            message: '✅ المنتجات المسترجعة بنجاح',
+            page,
+            totalPages,
+            totalProducts,
+            products
+        });
+
     } catch (error) {
         res.status(500).json({ message: '❌ حدث خطأ أثناء استرجاع المنتجات', error: error.message });
     }
 };
 
+// ✅ إضافة المسار إلى الراوتر
 
 const getProductById = async (req, res) => {
     try {

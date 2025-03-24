@@ -43,7 +43,9 @@ const productSchema = new mongoose.Schema({
         enum: ['male', 'female', 'unisex'], 
         required: false, 
         default: 'unisex' 
-    } // تحديد الجنس المستهدف للمنتج
+    },
+    createdBy: { type: String, required: true }, // 👈 تغيير الـ ObjectId إلى String
+
 
 }, { timestamps: true });
 

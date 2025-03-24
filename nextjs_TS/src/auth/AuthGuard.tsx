@@ -42,35 +42,34 @@
 
 //   return <> {children} </>;
 // }
-
 import { useState, useEffect } from 'react';
-// next
 import { useRouter } from 'next/router';
-// components
 import LoadingScreen from '../components/loading-screen';
-//
 import Login from '../pages/auth/login';
 import { useAuthContext } from './useAuthContext';
-
-// ----------------------------------------------------------------------
 
 type AuthGuardProps = {
   children: React.ReactNode;
 };
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isInitialized, setAuthenticated } = useAuthContext(); // إضافة `setAuthenticated`
+  const { isAuthenticated, isInitialized, setAuthenticated } = useAuthContext();
   const { pathname, push } = useRouter();
   const [requestedLocation, setRequestedLocation] = useState<string | null>(null);
 
+  // ✅ تحميل التوكن من localStorage والتحقق من صحة المصادقة عند التهيئة
   useEffect(() => {
-    // ✅ التحقق من وجود التوكن في localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-      setAuthenticated(true); // ✅ تحديث حالة تسجيل الدخول
+    if (isInitialized) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        if (!isAuthenticated) setAuthenticated(true); // تحديث فقط إذا كانت القيم مختلفة
+      } else {
+        if (isAuthenticated) setAuthenticated(false);
+      }
     }
-  }, [setAuthenticated]); // تنفيذ مرة واحدة عند التحميل
+  }, [isInitialized, isAuthenticated, setAuthenticated]);
 
+  // ✅ التعامل مع إعادة التوجيه
   useEffect(() => {
     if (requestedLocation && pathname !== requestedLocation) {
       push(requestedLocation);
@@ -80,10 +79,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isAuthenticated, pathname, push, requestedLocation]);
 
+  // ✅ عرض شاشة التحميل حتى يتم التحقق من المصادقة
   if (!isInitialized) {
     return <LoadingScreen />;
   }
 
+  // ✅ إعادة توجيه المستخدم إلى تسجيل الدخول إذا لم يكن مصدقًا
   if (!isAuthenticated) {
     if (pathname !== requestedLocation) {
       setRequestedLocation(pathname);

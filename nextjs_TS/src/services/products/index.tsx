@@ -35,18 +35,30 @@ export const createProduct = async (productData: ProductData) => {
 };
 
 // جلب جميع المنتجات
-export const getAllProducts = async () => {
+// export const getAllProducts = async () => {
+//     try {
+//         const response = await axiosInstance.get('/products/');
+//         return response.data;
+//     } catch (error: unknown) {
+//         if (axios.isAxiosError(error)) {
+//             throw error.response?.data || 'خطأ غير متوقع';
+//         }
+//         throw 'حدث خطأ غير معروف';
+//     }
+// };
+export const getAllProducts = async ({ page = 1, limit = 5, search = '', sortBy = 'createdAt', order = 'desc' } = {}) => {
     try {
-        const response = await axiosInstance.get('/products/');
-        return response.data;
-    } catch (error: unknown) {
+        const response = await axiosInstance.get('/products/', {
+            params: { page, limit, search, sortBy, order }
+        });
+        return response.data; // إرجاع البيانات مباشرة لاستخدامها في المكونات
+    } catch (error) {
         if (axios.isAxiosError(error)) {
-            throw error.response?.data || 'خطأ غير متوقع';
+            throw error.response?.data || '❌ خطأ غير متوقع أثناء جلب المنتجات';
         }
-        throw 'حدث خطأ غير معروف';
+        throw '❌ حدث خطأ غير معروف';
     }
 };
-
 // جلب منتج واحد حسب الـ ID
 export const getProductById = async (productId: string) => {
     try {

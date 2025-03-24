@@ -64,7 +64,7 @@ interface Product {
   };
   description?: {
     en?: string;
-  };  price: number;
+  }; price: number;
   priceBeforeOffer: number;
   quantity: number;
   category?: {
@@ -77,7 +77,7 @@ interface Product {
       en?: string;
     };
   };
- 
+
   images: string;
   createdAt: string;
   updatedAt: string;
@@ -91,6 +91,9 @@ interface Product {
 
 }
 
+interface DataType {
+  totalProducts: number;
+}
 
 
 
@@ -148,6 +151,7 @@ export default function EcommerceProductListPage() {
     onSort,
     onChangeDense,
     onChangePage,
+    setRowsPerPage,
     onChangeRowsPerPage,
   } = useTable({
     defaultOrderBy: 'createdAt',
@@ -166,6 +170,7 @@ export default function EcommerceProductListPage() {
   const [tableData, setTableData] = useState<Product[]>([]);
 
   const [filterName, setFilterName] = useState('');
+  const [data, setData] = useState<DataType | null>(null);
 
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
 
@@ -181,7 +186,7 @@ export default function EcommerceProductListPage() {
     if (products.length) {
       setTableData(products);
     }
-  }, [products]);
+  }, [products, page, rowsPerPage]);
 
 
 
@@ -190,46 +195,53 @@ export default function EcommerceProductListPage() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const data = await getAllProducts(); // استدعاء الدالة
-        setProducts(data); // تخزين المنتجات
+        const data = await getAllProducts({
+          page: page + 1, // لأن API غالبًا ما يستخدم صفحات تبدأ من 1
+          limit: rowsPerPage
+        });
+        setProducts(data.products);
+        setData(data);
       } catch (err) {
-        setError(err as string); // تخزين الخطأ
+        setError(err as string);
       } finally {
-        setLoading(false); // إيقاف التحميل
+        setLoading(false);
       }
     };
 
     fetchProducts();
-  }, []); // [] تعني أن `useEffect` يتم تشغيله مرة واحدة عند تحميل المكون
+  }, [page, rowsPerPage]); // يتم التحديث عند تغيير الصفحة أو عدد العناصر
+
   useEffect(() => {
     if (Array.isArray(products) && products.length > 0) {
-        const formattedData: Product[] = products.map((product) => ({
-            id: product._id || '',
-            name: { en: product.name?.en || 'Unknown' },
-            description: { en: product.description?.en?.replace(/<\/?p>/g, '') || '' },
-            price: product.price || 0,
-            priceBeforeOffer: product.priceBeforeOffer || product.price || 0,
-            quantity: product.quantity || 0,
-            category: product.category && typeof product.category === 'object' 
-                ? { name: { en: product.category.name?.en || 'Unknown' } } 
-                : { name: { en: 'Unknown' } }, // ✅ تأكد من أن `category` كائن وليس نص
-            subcategory: product.subcategory && typeof product.subcategory === 'object'
-                ? { name: { en: product.subcategory.name?.en || 'Unknown' } } 
-                : { name: { en: 'Unknown' } }, // ✅ نفس الأمر مع `subcategory`
-            images: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
-            createdAt: product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '',
-            updatedAt: product.updatedAt ? new Date(product.updatedAt).toLocaleDateString() : '',
-            status: product.quantity > 10 ? 'in_stock' : product.quantity > 0 ? 'low_stock' : 'out_of_stock',
-            rating: product.rating || 0,
-            isOffer: !!product.isOffer,
-            isTopSelling: !!product.isTopSelling,
-            isTopRating: !!product.isTopRating,
-            isTrending: !!product.isTrending,
-        }));
+      const formattedData: Product[] = products.map((product) => ({
+        id: product._id || '',
+        name: { en: product.name?.en || 'Unknown' },
+        description: { en: product.description?.en?.replace(/<\/?p>/g, '') || '' },
+        price: product.price || 0,
+        priceBeforeOffer: product.priceBeforeOffer || product.price || 0,
+        quantity: product.quantity || 0,
+        category: product.category && typeof product.category === 'object'
+          ? { name: { en: product.category.name?.en || 'Unknown' } }
+          : { name: { en: 'Unknown' } }, // ✅ تأكد من أن `category` كائن وليس نص
+        subcategory: product.subcategory && typeof product.subcategory === 'object'
+          ? { name: { en: product.subcategory.name?.en || 'Unknown' } }
+          : { name: { en: 'Unknown' } }, // ✅ نفس الأمر مع `subcategory`
+        images: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+        createdAt: product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '',
+        updatedAt: product.updatedAt ? new Date(product.updatedAt).toLocaleDateString() : '',
+        status: product.quantity > 10 ? 'in_stock' : product.quantity > 0 ? 'low_stock' : 'out_of_stock',
+        rating: product.rating || 0,
+        isOffer: !!product.isOffer,
+        isTopSelling: !!product.isTopSelling,
+        isTopRating: !!product.isTopRating,
+        isTrending: !!product.isTrending,
+      }));
 
-        setTableData(formattedData);
+      setTableData(formattedData);
+    } else {
+      setTableData([]); // تأكد من إعادة التهيئة عند عدم وجود بيانات
     }
-}, [products]);
+  }, [products]);
 
 
   const dataFiltered = applyFilter({
@@ -271,30 +283,29 @@ export default function EcommerceProductListPage() {
   const handleDeleteRow = async (id: string) => {
     try {
       await deleteProduct(id); // استدعاء API لحذف المنتج
-  
+
       const updatedTableData = tableData.filter((row) => row._id !== id);
       setSelected([]);
       setTableData(updatedTableData);
-  
+
       if (page > 0 && dataInPage.length < 2) {
         setPage(page - 1);
       }
-  
-      enqueueSnackbar('تم حذف المنتج بنجاح!', { variant: 'success' });
-      setOpenConfirm(false);
 
+      enqueueSnackbar('تم حذف المنتج بنجاح!', { variant: 'success' });
+      handleCloseConfirm()
     } catch (error) {
       enqueueSnackbar(error || 'حدث خطأ أثناء حذف المنتج', { variant: 'error' });
       console.error(error);
     }
   };
-  
+
 
   const handleDeleteRows = (selectedRows: string[]) => {
     const deleteRows = tableData.filter(
       (row) => row._id !== undefined && !selectedRows.includes(row._id)
     );
-        setSelected([]);
+    setSelected([]);
     setTableData(deleteRows);
 
     if (page > 0) {
@@ -405,20 +416,20 @@ export default function EcommerceProductListPage() {
                     .map((row, index) =>
                       row ? (
                         <ProductTableRow
-                        key={row.id}
-                        row={{
+                          key={row.id}
+                          row={{
                             ...row,
                             name: row.name?.en || 'Unknown', // ✅ تحويل `name` إلى نص فقط
                             category: row.category?.name?.en || 'Unknown', // ✅ استخراج `category` كـ string
                             subcategory: row.subcategory?.name?.en || 'Unknown',
-                        }}
-                        selected={selected.includes(row.id)}
-                        onSelectRow={() => onSelectRow(row.id)}
-                        onDeleteRow={() => handleDeleteRow(row.id)}
-                        onEditRow={() => handleEditRow(row.id)}
-                        onViewRow={() => handleViewRow(row.id)}
-                    />
-                    
+                          }}
+                          selected={selected.includes(row.id)}
+                          onSelectRow={() => onSelectRow(row.id)}
+                          onDeleteRow={() => handleDeleteRow(row.id)}
+                          onEditRow={() => handleEditRow(row.id)}
+                          onViewRow={() => handleViewRow(row.id)}
+                        />
+
                       ) : (
                         !isNotFound && <TableSkeleton key={index} sx={{ height: denseHeight }} />
                       )
@@ -436,15 +447,18 @@ export default function EcommerceProductListPage() {
           </TableContainer>
 
           <TablePaginationCustom
-            count={dataFiltered.length}
+            count={data?.totalProducts || 0}
             page={page}
             rowsPerPage={rowsPerPage}
-            onPageChange={onChangePage}
-            onRowsPerPageChange={onChangeRowsPerPage}
-            //
+            onPageChange={(_, newPage) => setPage(newPage)} // تحديث الصفحة
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 5));
+              setPage(0); // إعادة الصفحة إلى 0 عند تغيير عدد الصفوف لكل صفحة
+            }}
             dense={dense}
             onChangeDense={onChangeDense}
           />
+
         </Card>
       </Container>
 
@@ -502,14 +516,14 @@ function applyFilter({
       (product) => product.name?.en?.toLowerCase().includes(filterName.toLowerCase()) ?? false
     );
   }
-  
+
 
   if (filterStatus.length) {
     inputData = inputData.filter((product) =>
       filterStatus.includes(product.inventoryType ?? '')
     );
   }
-  
+
 
   return inputData;
 }

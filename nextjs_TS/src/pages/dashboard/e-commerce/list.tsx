@@ -58,7 +58,9 @@ import { useSnackbar } from 'src/components/snackbar';
 // ];
 
 interface Product {
+  id?: string; // الآن `_id` ليس مطلوبًا
   _id?: string; // الآن `_id` ليس مطلوبًا
+
   name: {
     en?: string;
   };
@@ -284,7 +286,7 @@ export default function EcommerceProductListPage() {
     try {
       await deleteProduct(id); // استدعاء API لحذف المنتج
 
-      const updatedTableData = tableData.filter((row) => row._id !== id);
+      const updatedTableData = tableData.filter((row) => row.id !== id);
       setSelected([]);
       setTableData(updatedTableData);
 
@@ -296,14 +298,13 @@ export default function EcommerceProductListPage() {
       handleCloseConfirm()
     } catch (error) {
       enqueueSnackbar(error || 'حدث خطأ أثناء حذف المنتج', { variant: 'error' });
-      console.error(error);
     }
   };
 
 
   const handleDeleteRows = (selectedRows: string[]) => {
     const deleteRows = tableData.filter(
-      (row) => row._id !== undefined && !selectedRows.includes(row._id)
+      (row) => row.id !== undefined && !selectedRows.includes(row.id)
     );
     setSelected([]);
     setTableData(deleteRows);
@@ -381,7 +382,7 @@ export default function EcommerceProductListPage() {
               onSelectAllRows={(checked) =>
                 onSelectAllRows(
                   checked,
-                  tableData.map((row) => row._id).filter((id): id is string => id !== undefined)
+                  tableData.map((row) => row.id).filter((id): id is string => id !== undefined)
                 )
               }
               action={
@@ -405,14 +406,13 @@ export default function EcommerceProductListPage() {
                   onSelectAllRows={(checked) =>
                     onSelectAllRows(
                       checked,
-                      tableData.map((row) => row._id).filter((id): id is string => id !== undefined)
+                      tableData.map((row) => row.id).filter((id): id is string => id !== undefined)
                     )
                   }
                 />
 
                 <TableBody>
-                  {(loading ? [...Array(rowsPerPage)] : dataFiltered)
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  {tableData
                     .map((row, index) =>
                       row ? (
                         <ProductTableRow
@@ -423,11 +423,11 @@ export default function EcommerceProductListPage() {
                             category: row.category?.name?.en || 'Unknown', // ✅ استخراج `category` كـ string
                             subcategory: row.subcategory?.name?.en || 'Unknown',
                           }}
-                          selected={selected.includes(row.id)}
-                          onSelectRow={() => onSelectRow(row.id)}
-                          onDeleteRow={() => handleDeleteRow(row.id)}
-                          onEditRow={() => handleEditRow(row.id)}
-                          onViewRow={() => handleViewRow(row.id)}
+                          selected={selected.includes(String(row.id || ''))}
+                          onSelectRow={() => row.id && onSelectRow(String(row.id))}
+                          onDeleteRow={() => row.id && handleDeleteRow(String(row.id))}
+                          onEditRow={() => handleEditRow(row.id!)} // ✅ تمرير الـ _id
+                          onViewRow={() => row.id && handleViewRow(String(row.id))}
                         />
 
                       ) : (
@@ -435,10 +435,10 @@ export default function EcommerceProductListPage() {
                       )
                     )}
 
-                  <TableEmptyRows
+                  {/* <TableEmptyRows
                     height={denseHeight}
                     emptyRows={emptyRows(page, rowsPerPage, tableData.length)}
-                  />
+                  /> */}
 
                   <TableNoData isNotFound={isNotFound} />
                 </TableBody>

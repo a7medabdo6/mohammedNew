@@ -189,16 +189,14 @@ import ConfirmDialog from '../../../../components/confirm-dialog';
 
 // ----------------------------------------------------------------------
 export interface IProduct {
-  id: string;
+  _id?: string; // جعل `_id` اختياريًا
   name: string;
-  description: string;
-  cover: string; // Main image of the product
+  description?: { en?: string }; // تعديل `description` ليكون بنفس هيكلة البيانات القادمة
   images: string[]; // Array of image URLs
   price: number;
   priceBeforeOffer?: number; // Optional price before discount
   isOffer: boolean;
   quantity: number;
-  inventoryType: 'in_stock' | 'low_stock' | 'out_of_stock';
   rating: number;
   category:string;
   subcategory?: string;
@@ -206,6 +204,10 @@ export interface IProduct {
   isTopSelling?: boolean;
   isTrending?: boolean;
   isTopRating?: boolean;
+  inventoryType?: string;
+  cover?: string;
+
+
 }
 
 type Props = {
@@ -225,6 +227,7 @@ export default function ProductTableRow({
   onEditRow,
   onViewRow,
 }: Props) {
+
   const {
     name,
     cover,
@@ -241,7 +244,6 @@ export default function ProductTableRow({
     isTrending,
     isTopRating,
   } = row;
-
   const [openConfirm, setOpenConfirm] = useState(false);
 
   const [openPopover, setOpenPopover] = useState<HTMLElement | null>(null);
@@ -373,10 +375,13 @@ export default function ProductTableRow({
         </MenuItem>
 
         <MenuItem
-          onClick={() => {
+        onClick={() => {
+          try {
             onEditRow();
-            handleClosePopover();
-          }}
+          } catch (error) {
+          }
+          handleClosePopover();
+        }}
         >
           <Iconify icon="eva:edit-fill" />
           Edit

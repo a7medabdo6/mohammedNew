@@ -44,7 +44,8 @@ import CustomBreadcrumbs from '../../../components/custom-breadcrumbs';
 import ConfirmDialog from '../../../components/confirm-dialog';
 // sections
 import { ProductTableRow, ProductTableToolbar } from '../../../sections/@dashboard/e-commerce/list';
-import { getAllProducts } from 'src/services/products';
+import { deleteProduct, getAllProducts } from 'src/services/products';
+import { useSnackbar } from 'src/components/snackbar';
 
 // ----------------------------------------------------------------------
 
@@ -109,11 +110,11 @@ const TABLE_HEAD = [
   // { id: 'status', label: 'Status', align: 'center' },
   { id: 'rating', label: 'Rating', align: 'center' },
   { id: 'isOffer', label: 'Offer', align: 'center' }, // هل عليه عرض؟
-  { id: 'isTopSelling', label: 'Top Selling', align: 'center' }, // هل من الأكثر مبيعًا؟
-  { id: 'isTopRating', label: 'Top Rated', align: 'center' }, // هل من الأعلى تقييمًا؟
-  { id: 'isTrending', label: 'Trending', align: 'center' }, // هل من المنتجات الشائعة؟
+  { id: 'status', label: 'status', align: 'center' }, // هل من الأكثر مبيعًا؟
+
   { id: '' },
 ];
+
 
 
 const STATUS_OPTIONS = [
@@ -155,6 +156,7 @@ export default function EcommerceProductListPage() {
   const { themeStretch } = useSettingsContext();
 
   const { push } = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
 
   const dispatch = useDispatch();
 
@@ -266,17 +268,27 @@ export default function EcommerceProductListPage() {
     setFilterStatus(typeof value === 'string' ? value.split(',') : value);
   };
 
-  const handleDeleteRow = (id: string) => {
-    const deleteRow = tableData.filter((row) => row._id !== id);
-    setSelected([]);
-    setTableData(deleteRow);
-
-    if (page > 0) {
-      if (dataInPage.length < 2) {
+  const handleDeleteRow = async (id: string) => {
+    try {
+      await deleteProduct(id); // استدعاء API لحذف المنتج
+  
+      const updatedTableData = tableData.filter((row) => row._id !== id);
+      setSelected([]);
+      setTableData(updatedTableData);
+  
+      if (page > 0 && dataInPage.length < 2) {
         setPage(page - 1);
       }
+  
+      enqueueSnackbar('تم حذف المنتج بنجاح!', { variant: 'success' });
+      setOpenConfirm(false);
+
+    } catch (error) {
+      enqueueSnackbar(error || 'حدث خطأ أثناء حذف المنتج', { variant: 'error' });
+      console.error(error);
     }
   };
+  
 
   const handleDeleteRows = (selectedRows: string[]) => {
     const deleteRows = tableData.filter(

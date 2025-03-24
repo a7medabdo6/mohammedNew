@@ -241,7 +241,6 @@ export default function ProductTableRow({
     isTrending,
     isTopRating,
   } = row;
-  console.log(row)
 
   const [openConfirm, setOpenConfirm] = useState(false);
 
@@ -317,10 +316,10 @@ export default function ProductTableRow({
 
         <TableCell align="center">{price}</TableCell>
         <TableCell align="center">{priceBeforeOffer}</TableCell>
-        <TableCell align="center">{quantity}</TableCell>
 
         {/* الكمية */}
         <TableCell align="center">{quantity}</TableCell>
+        <TableCell align="center">{rating} ⭐</TableCell>
 
         {/* السعر والعرض */}
         <TableCell align="right">
@@ -339,14 +338,8 @@ export default function ProductTableRow({
           )}
         </TableCell>
 
-        {/* التصنيف */}
-        <TableCell align="center">{rating} ⭐</TableCell>
 
-        {/* الفئة */}
-        {/* <TableCell align="center">{category?.name || 'N/A'}</TableCell> */}
-
-        {/* الفئة الفرعية */}
-        {/* <TableCell align="center">{subcategory?.name || 'N/A'}</TableCell> */}
+      
 
         {/* التريند، الأكثر مبيعًا، الأعلى تقييمًا */}
         <TableCell align="center">

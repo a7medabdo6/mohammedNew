@@ -85,35 +85,43 @@ const createSubCategory = async (req, res) => {
 
 
 
+
+
 const getCategories = async (req, res) => {
     try {
-        const { lang = 'en' } = req.query; // اللغة الافتراضية هي الإنجليزية
+        const { lang = 'en', page = 1, limit = 10, search = '' } = req.query;
+        const pageNumber = parseInt(page, 10);
+        const pageSize = parseInt(limit, 10);
+        
+        // بناء فلتر البحث
+        const searchFilter = search
+            ? { $or: [{ [`name.${lang}`]: new RegExp(search, 'i') }, { 'name.en': new RegExp(search, 'i') }] }
+            : {};
 
-        // جلب الفئات الرئيسية فقط
-        const categories = await Category.find({ parent: null })
+        // جلب الفئات الرئيسية فقط مع التصفية والصفحات
+        const categories = await Category.find({ parent: null, ...searchFilter })
             .populate({
                 path: 'subcategories',
                 select: 'name subcategories',
-                populate: { path: 'subcategories', select: 'name' } // دعم التداخل المتعدد
-            });
+                populate: { path: 'subcategories', select: 'name' }
+            })
+            .skip((pageNumber - 1) * pageSize)
+            .limit(pageSize);
 
-        // إذا لم تكن هناك فئات، إرجاع مصفوفة فارغة
-        if (!categories.length) {
-            return res.json([]);
-        }
+        // حساب إجمالي عدد الفئات بدون تقسيم صفحات
+        const totalCategories = await Category.countDocuments({ parent: null, ...searchFilter });
 
-        // حساب عدد المنتجات في كل فئة وفئة فرعية
         const formattedCategories = await Promise.all(
             categories.map(async (category) => {
-                const categoryProductCount = await Product.countDocuments({ category: category._id }).catch(() => 0);
+                const categoryProductCount = await Product.countDocuments({ category: category._id });
 
                 const formattedSubcategories = await Promise.all(
                     category.subcategories.map(async (sub) => {
-                        const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id }).catch(() => 0);
+                        const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id });
 
                         const formattedSubSubcategories = await Promise.all(
                             sub.subcategories.map(async (subSub) => {
-                                const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id }).catch(() => 0);
+                                const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id });
 
                                 return {
                                     _id: subSub._id,
@@ -141,14 +149,16 @@ const getCategories = async (req, res) => {
             })
         );
 
-        res.json(formattedCategories);
+        res.json({
+            categories: formattedCategories,
+            totalCategories,
+            totalPages: Math.ceil(totalCategories / pageSize),
+            currentPage: pageNumber
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching categories', error: error.message });
     }
 };
-
-
-
 
 
 const deleteCategory = async (req, res) => {

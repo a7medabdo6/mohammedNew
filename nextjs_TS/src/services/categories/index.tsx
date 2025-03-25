@@ -25,9 +25,23 @@ export const createMainCategory = async (categoryData: CategoryData) => {
 };
 
 
-export const getCategories = async () => {
+// export const getCategories = async () => {
+//     try {
+//         const response = await axiosInstance.get('/categories');
+//         return response.data;
+//     } catch (error: unknown) {
+//         if (axios.isAxiosError(error)) {
+//             throw error.response?.data || 'خطأ غير متوقع';
+//         }
+//         throw 'حدث خطأ غير معروف';
+//     }
+// };
+
+export const getCategories = async (page = 1, limit = 5, search = '') => {
     try {
-        const response = await axiosInstance.get('/categories');
+        const response = await axiosInstance.get('/categories', {
+            params: { page, limit, search },
+        });
         return response.data;
     } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
@@ -50,7 +64,16 @@ export const updateCategory = async (categoryId: string, categoryData: CategoryD
     }
 };
 
+export const getCategoryById = async (categoryId: string) => {
+    try {
 
+        const response = await axiosInstance.get(`/categories/${categoryId}`);
+        return response.data;
+    } catch (error) {
+        console.error("❌ Error fetching category:", error);
+        throw error;
+    }
+};
 
 interface SubCategoryData {
     name: {
@@ -92,14 +115,3 @@ export const deleteCategory = async (categoryId: string) => {
 };
 
 
-export const getCategoryById = async (categoryId: string) => {
-    console.log(categoryId)
-    try {
-
-        const response = await axiosInstance.get(`/categories/${categoryId}`);
-        return response.data;
-    } catch (error) {
-        console.error("❌ Error fetching category:", error);
-        throw error;
-    }
-};

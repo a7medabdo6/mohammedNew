@@ -202,7 +202,8 @@ export default function EcommerceProductListPage() {
         setLoading(true);
         const data = await getAllProducts({
           page: page + 1, // لأن API غالبًا ما يستخدم صفحات تبدأ من 1
-          limit: rowsPerPage
+          limit: rowsPerPage,
+          search:filterName
         });
         setProducts(data.products);
         setData(data);
@@ -214,7 +215,7 @@ export default function EcommerceProductListPage() {
     };
 
     fetchProducts();
-  }, [page, rowsPerPage]); // يتم التحديث عند تغيير الصفحة أو عدد العناصر
+  }, [page, rowsPerPage,filterName]); // يتم التحديث عند تغيير الصفحة أو عدد العناصر
 
   useEffect(() => {
     if (Array.isArray(products) && products.length > 0) {

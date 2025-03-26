@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Card, Table, TableBody, TableContainer, TableHead, TableRow, TableCell, Container, Collapse, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { getCategories, createMainCategory, createSubCategory, updateCategory, getCategoryById } from 'src/services/categories';
+import { Card,Grid, Table, TableBody, TableContainer, TableHead, TableRow, TableCell, Container, Collapse, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { getCategories, createMainCategory, createSubCategory, updateCategory, getCategoryById ,} from 'src/services/categories';
 import Scrollbar from '../../../components/scrollbar';
 import DashboardLayout from '../../../layouts/dashboard';
 import { ExpandMore, ExpandLess, Edit } from '@mui/icons-material';
@@ -12,6 +12,7 @@ interface Subcategory {
   productCount: number;
   subcategories: Subcategory[];
 }
+
 
 interface Category {
   _id: string;
@@ -68,108 +69,157 @@ const CategoriesPage = () => {
     }
   };
   const handleEditCategory = async (categoryId: string) => {
-
     try {
-      const categoryData = await getCategoryById(categoryId);
-      setEditingCategory(categoryData);
-      setNewCategoryNameAr(categoryData.name.ar);
-      setNewCategoryNameEn(categoryData.name.en);
-      setOpenEditModal(true);
+        const response = await getCategoryById(categoryId);
+
+        if (!response || !response.category) {
+            throw new Error('Category data is missing');
+        }
+
+        const categoryData = response.category;
+        console.log('Fetched category:', categoryData);
+
+        setEditingCategory(categoryData);
+
+        // ✅ تعيين القيم الصحيحة للنصوص
+        setNewCategoryNameAr(categoryData.name?.ar || '');
+        setNewCategoryNameEn(categoryData.name?.en || '');
+        
+        // ✅ التحقق مما إذا كانت الفئة فرعية
+        if (categoryData.parentCategory) {
+            setCategoryType('sub');
+            setParentId(categoryData.parentCategory._id || '');
+        } else {
+            setCategoryType('main');
+            setParentId('');
+        }
+
+        console.log('Opening edit modal');
+        setOpenEditModal(true);
     } catch (error) {
-      console.error('Error fetching category:', error);
+        console.error('Error fetching category:', error);
     }
-  };
+};
 
-  const handleUpdateCategory = async () => {
-    try {
+  
+const handleUpdateCategory = async () => {
+  try {
       if (editingCategory) {
-        await updateCategory(editingCategory._id, {
-          name: { ar: newCategoryNameAr, en: newCategoryNameEn },
-        });
+          const updatedData: any = {
+              nameAr: newCategoryNameAr,
+              nameEn: newCategoryNameEn,
+          };
+
+          if (categoryType === 'sub') {
+              // ✅ تحديث فئة فرعية باستخدام updateSubCategory
+              updatedData.parentCategory = parentId; // تأكد من إرسال parentId للفئات الفرعية فقط
+              await updateSubCategory(editingCategory._id, updatedData);
+          } else {
+              // ✅ تحديث فئة رئيسية باستخدام updateCategory
+              await updateCategory(editingCategory._id, updatedData);
+          }
       }
+      
       setOpenEditModal(false);
       setEditingCategory(null);
       setNewCategoryNameAr('');
       setNewCategoryNameEn('');
-    } catch (error) {
+      setParentId('');
+  } catch (error) {
       console.error('Error updating category:', error);
-    }
-  };
+  }
+};
+
+
   return (
     <Container maxWidth="lg">
       <Card>
-        <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between' }}>
-          <TextField
-            label="Search Categories"
-            variant="outlined"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button variant="contained" color="primary" onClick={() => setOpenModal(true)}>
-            إضافة تصنيف جديد
-          </Button>
-        </div>
+      <div style={{ padding: '1rem' }}>
+  <Grid container spacing={2} alignItems="center">
+    <Grid item xs={12} sm={8}>
+      <TextField
+        label="بحث عن التصنيفات"
+        variant="outlined"
+        fullWidth
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </Grid>
+    <Grid item xs={12} sm={4} display="flex" justifyContent="flex-end">
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={() => setOpenModal(true)}
+        sx={{ minWidth: '180px', height: '100%' }}
+      >
+        إضافة تصنيف جديد
+      </Button>
+    </Grid>
+  </Grid>
+</div>
+
         <Scrollbar>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell></TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Product Count</TableCell>
-                  <TableCell>Subcategories</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {categories?.map((category) => (
-                  <React.Fragment key={category._id}>
-                    <TableRow>
-                      <TableCell>
-                        {category.subcategories.length > 0 && (
-                          <IconButton onClick={() => handleToggle(category._id)}>
-                            {openCategory === category._id ? <ExpandLess /> : <ExpandMore />}
-                          </IconButton>
-                        )}
-                      </TableCell>
-                      <TableCell>{category.name}</TableCell>
-                      <TableCell>{category.productCount}</TableCell>
-                      <TableCell>
-                        {category.subcategories.length > 0 ? `${category.subcategories.length} Subcategories` : 'None'}
-                      </TableCell>
+        <TableContainer>
+  <Table sx={{ minWidth: 650, border: '1px solid #ddd' }}>
+    <TableHead>
+      <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+        <TableCell align="center"></TableCell>
+        <TableCell align="center"><strong>الاسم</strong></TableCell>
+        <TableCell align="center"><strong>عدد المنتجات</strong></TableCell>
+        <TableCell align="center"><strong>التصنيفات الفرعية</strong></TableCell>
+        <TableCell align="center"><strong>الإجراءات</strong></TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {categories.map((category) => (
+        <React.Fragment key={category._id}>
+          <TableRow sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+            <TableCell align="center">
+              {category.subcategories.length > 0 && (
+                <IconButton size="small" onClick={() => handleToggle(category._id)}>
+                  {openCategory === category._id ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
+              )}
+            </TableCell>
+            <TableCell align="center">{category.name}</TableCell>
+            <TableCell align="center">{category.productCount}</TableCell>
+            <TableCell align="center">
+              {category.subcategories.length > 0 ? `${category.subcategories.length} تصنيف فرعي` : 'لا يوجد'}
+            </TableCell>
+            <TableCell align="center">
+              <IconButton onClick={() => handleEditCategory(category._id)} color="primary" size="small">
+                <Edit fontSize="small" />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell colSpan={5} style={{ padding: 0 }}>
+              <Collapse in={openCategory === category._id} timeout="auto" unmountOnExit>
+                <Table size="small" sx={{ marginLeft: 4 }}>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
+                      <TableCell align="center"><strong>اسم التصنيف الفرعي</strong></TableCell>
+                      <TableCell align="center"><strong>عدد المنتجات</strong></TableCell>
                     </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={4} style={{ padding: 0 }}>
-                        <Collapse in={openCategory === category._id} timeout="auto" unmountOnExit>
-                          <Table size="small" sx={{ marginLeft: 4 }}>
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Subcategory Name</TableCell>
-                                <TableCell>Product Count</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {category.subcategories.map((sub) => (
-                                <TableRow key={sub._id}>
-                                  <TableCell>{sub.name}</TableCell>
-                                  <TableCell>{sub.productCount}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </Collapse>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEditCategory(category._id)} color="primary">
-                          <Edit />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {category.subcategories.map((sub) => (
+                      <TableRow key={sub._id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                        <TableCell align="center">{sub.name}</TableCell>
+                        <TableCell align="center">{sub.productCount}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Collapse>
+            </TableCell>
+          </TableRow>
+        </React.Fragment>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
 
         </Scrollbar>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
@@ -211,28 +261,48 @@ const CategoriesPage = () => {
 
 
       <Dialog open={openEditModal} onClose={() => setOpenEditModal(false)}>
-        <DialogTitle>تعديل التصنيف</DialogTitle>
-        <DialogContent>
-          <TextField
+    <DialogTitle>تعديل التصنيف</DialogTitle>
+    <DialogContent>
+        <FormControl fullWidth margin="dense">
+            <InputLabel>نوع التصنيف</InputLabel>
+            <Select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'main' | 'sub')}>
+                <MenuItem value="main">تصنيف رئيسي</MenuItem>
+                <MenuItem value="sub">تصنيف فرعي</MenuItem>
+            </Select>
+        </FormControl>
+
+        {categoryType === 'sub' && (
+            <FormControl fullWidth margin="dense">
+                <InputLabel>التصنيف الرئيسي</InputLabel>
+                <Select value={parentId} onChange={(e) => setParentId(e.target.value)}>
+                    {categories.map((cat) => (
+                        <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+        )}
+
+        <TextField
             fullWidth
             margin="dense"
             label="الاسم بالعربية"
             value={newCategoryNameAr}
             onChange={(e) => setNewCategoryNameAr(e.target.value)}
-          />
-          <TextField
+        />
+        <TextField
             fullWidth
             margin="dense"
             label="الاسم بالإنجليزية"
             value={newCategoryNameEn}
             onChange={(e) => setNewCategoryNameEn(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditModal(false)}>إلغاء</Button>
-          <Button onClick={handleUpdateCategory} color="primary">حفظ التغييرات</Button>
-        </DialogActions>
-      </Dialog>
+        />
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={() => setOpenEditModal(false)}>إلغاء</Button>
+        <Button onClick={handleUpdateCategory} color="primary">حفظ التغييرات</Button>
+    </DialogActions>
+</Dialog>
+
     </Container>
   );
 };

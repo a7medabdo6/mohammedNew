@@ -8,6 +8,12 @@ interface CategoryData {
     };
 }
 
+interface CategoryDataEdit {
+    nameAr: string;
+    nameEn: string;
+    parentCategory?: string;
+}
+
 export const createMainCategory = async (categoryData: CategoryData) => {
     const formattedData = {
         nameAr: categoryData.name.ar,  // تعديل الاسم
@@ -52,17 +58,38 @@ export const getCategories = async (page = 1, limit = 5, search = '') => {
 };
 
 
-export const updateCategory = async (categoryId: string, categoryData: CategoryData & { parentCategory?: string }) => {
+
+
+// 🎭 تحديث الفئة الرئيسية بطريقة ممتعة 🎭
+export const updateCategory = async (categoryId: string, categoryData: CategoryDataEdit) => {
     try {
         const response = await axiosInstance.put(`/categories/${categoryId}`, categoryData);
         return response.data;
     } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
+            console.error('❌ أوه لا! تعطل التعويذة السحرية! 🧙‍♂️', error.response?.data);
             throw error.response?.data || 'خطأ غير متوقع';
         }
         throw 'حدث خطأ غير معروف';
     }
 };
+
+// 🎭 تحديث الفئة الفرعية بطريقة ممتعة 🎭
+export const updateSubCategory = async (subCategoryId: string, subCategoryData: CategoryDataEdit) => {
+    try {
+        console.log(`🔄 البحث عن الفئة الفرعية ذات المعرف: ${subCategoryId}...`);
+        const response = await axiosInstance.put(`/categories/${subCategoryId}`, subCategoryData);
+        console.log(`🎊 نجاح ساحق! تم تحديث الفئة الفرعية إلى "${subCategoryData.nameAr}" و "${subCategoryData.nameEn}" بنجاح! 🚀`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error('⚠️ تحذير! يبدو أن التنين منع التحديث! 🐉', error.response?.data);
+            throw error.response?.data || 'خطأ غير متوقع';
+        }
+        throw 'حدث خطأ غير معروف';
+    }
+};
+
 
 export const getCategoryById = async (categoryId: string) => {
     try {

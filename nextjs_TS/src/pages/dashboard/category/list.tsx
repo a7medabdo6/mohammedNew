@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Card,Grid, Table, TableBody, TableContainer, TableHead, TableRow, TableCell, Container, Collapse, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { getCategories, createMainCategory, createSubCategory, updateCategory, getCategoryById ,} from 'src/services/categories';
+import { getCategories, createMainCategory, createSubCategory, updateCategory, getCategoryById,deleteCategory, deleteSubCategory ,updateSubCategory} from 'src/services/categories';
 import Scrollbar from '../../../components/scrollbar';
 import DashboardLayout from '../../../layouts/dashboard';
-import { ExpandMore, ExpandLess, Edit } from '@mui/icons-material';
+import { ExpandMore, ExpandLess, Edit,Delete } from '@mui/icons-material';
 import React from 'react';
 
 interface Subcategory {
@@ -35,6 +35,10 @@ const CategoriesPage = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [openEditModal, setOpenEditModal] = useState(false);  const limit = 5;
 
+  const [openSubEditModal, setOpenSubEditModal] = useState(false);
+  const [editingSubCategory, setEditingSubCategory] = useState<Subcategory | null>(null);
+  const [newSubNameAr, setNewSubNameAr] = useState('');
+  const [newSubNameEn, setNewSubNameEn] = useState('');
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -76,6 +80,7 @@ const CategoriesPage = () => {
             throw new Error('Category data is missing');
         }
 
+
         const categoryData = response.category;
         console.log('Fetched category:', categoryData);
 
@@ -111,8 +116,6 @@ const handleUpdateCategory = async () => {
           };
 
           if (categoryType === 'sub') {
-              // ✅ تحديث فئة فرعية باستخدام updateSubCategory
-              updatedData.parentCategory = parentId; // تأكد من إرسال parentId للفئات الفرعية فقط
               await updateSubCategory(editingCategory._id, updatedData);
           } else {
               // ✅ تحديث فئة رئيسية باستخدام updateCategory
@@ -130,6 +133,61 @@ const handleUpdateCategory = async () => {
   }
 };
 
+const handleEditSubCategory = (sub: Subcategory) => {
+  setEditingSubCategory(sub);
+  setNewSubNameAr(sub.name.ar);
+  setNewSubNameEn(sub.name.en);
+  setOpenSubEditModal(true);
+};
+
+const handleUpdateSubCategory = async () => {
+  try {
+    if (editingSubCategory) {
+      const updatedData = {
+        nameAr: newSubNameAr,
+        nameEn: newSubNameEn,
+      };
+
+      await updateSubCategory(editingSubCategory._id, updatedData);
+
+      setOpenSubEditModal(false);
+      setEditingSubCategory(null);
+      setNewSubNameAr('');
+      setNewSubNameEn('');
+
+      // تحديث القائمة بعد التعديل
+      const updatedCategories = await getCategories(page, limit, searchTerm);
+      setCategories(updatedCategories.categories);
+    }
+  } catch (error) {
+    console.error('Error updating subcategory:', error);
+  }
+};
+
+
+const handleDeleteCategory = async (categoryId: string) => {
+    if (!window.confirm('هل أنت متأكد أنك تريد حذف هذه الفئة وجميع الفئات الفرعية؟')) return;
+
+    try {
+        await deleteCategory(categoryId);
+        alert('✅ تم حذف الفئة بنجاح!');
+        // يمكنك هنا إعادة تحميل البيانات بعد الحذف
+    } catch (error) {
+        alert(error);
+    }
+};
+
+const handleDeleteSubCategory = async (subCategoryId: string) => {
+    if (!window.confirm('هل أنت متأكد أنك تريد حذف هذه الفئة الفرعية؟')) return;
+
+    try {
+        await deleteSubCategory(subCategoryId);
+        alert('✅ تم حذف الفئة الفرعية بنجاح!');
+        // يمكنك هنا إعادة تحميل البيانات بعد الحذف
+    } catch (error) {
+        alert(error);
+    }
+};
 
   return (
     <Container maxWidth="lg">
@@ -191,6 +249,11 @@ const handleUpdateCategory = async () => {
                 <Edit fontSize="small" />
               </IconButton>
             </TableCell>
+            <TableCell align="center">
+  <IconButton onClick={() => handleDeleteCategory(category._id)} color="error" size="small">
+    <Delete fontSize="small" />
+  </IconButton>
+</TableCell>
           </TableRow>
           <TableRow>
             <TableCell colSpan={5} style={{ padding: 0 }}>
@@ -207,6 +270,16 @@ const handleUpdateCategory = async () => {
                       <TableRow key={sub._id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
                         <TableCell align="center">{sub.name}</TableCell>
                         <TableCell align="center">{sub.productCount}</TableCell>
+                        <TableCell align="center">
+                                  <IconButton onClick={() => handleEditSubCategory(sub)} color="primary" size="small">
+                                    <Edit fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                                <TableCell align="center">
+  <IconButton onClick={() => handleDeleteSubCategory(sub._id)} color="error" size="small">
+    <Delete fontSize="small" />
+  </IconButton>
+</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -267,7 +340,7 @@ const handleUpdateCategory = async () => {
             <InputLabel>نوع التصنيف</InputLabel>
             <Select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'main' | 'sub')}>
                 <MenuItem value="main">تصنيف رئيسي</MenuItem>
-                <MenuItem value="sub">تصنيف فرعي</MenuItem>
+                {/* <MenuItem value="sub">تصنيف فرعي</MenuItem> */}
             </Select>
         </FormControl>
 
@@ -302,6 +375,31 @@ const handleUpdateCategory = async () => {
         <Button onClick={handleUpdateCategory} color="primary">حفظ التغييرات</Button>
     </DialogActions>
 </Dialog>
+
+  {/* Modal تعديل الفئة الفرعية */}
+  <Dialog open={openSubEditModal} onClose={() => setOpenSubEditModal(false)}>
+        <DialogTitle>تعديل التصنيف الفرعي</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            margin="dense"
+            label="الاسم بالعربية"
+            value={newSubNameAr}
+            onChange={(e) => setNewSubNameAr(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            margin="dense"
+            label="الاسم بالإنجليزية"
+            value={newSubNameEn}
+            onChange={(e) => setNewSubNameEn(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenSubEditModal(false)}>إلغاء</Button>
+          <Button onClick={handleUpdateSubCategory} color="primary">حفظ التغييرات</Button>
+        </DialogActions>
+      </Dialog>
 
     </Container>
   );

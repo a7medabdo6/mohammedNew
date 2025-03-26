@@ -67,7 +67,6 @@ export const updateCategory = async (categoryId: string, categoryData: CategoryD
         return response.data;
     } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
-            console.error('❌ أوه لا! تعطل التعويذة السحرية! 🧙‍♂️', error.response?.data);
             throw error.response?.data || 'خطأ غير متوقع';
         }
         throw 'حدث خطأ غير معروف';
@@ -77,13 +76,10 @@ export const updateCategory = async (categoryId: string, categoryData: CategoryD
 // 🎭 تحديث الفئة الفرعية بطريقة ممتعة 🎭
 export const updateSubCategory = async (subCategoryId: string, subCategoryData: CategoryDataEdit) => {
     try {
-        console.log(`🔄 البحث عن الفئة الفرعية ذات المعرف: ${subCategoryId}...`);
-        const response = await axiosInstance.put(`/categories/${subCategoryId}`, subCategoryData);
-        console.log(`🎊 نجاح ساحق! تم تحديث الفئة الفرعية إلى "${subCategoryData.nameAr}" و "${subCategoryData.nameEn}" بنجاح! 🚀`);
+        const response = await axiosInstance.put(`/categories/sub/${subCategoryId}`, subCategoryData);
         return response.data;
     } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
-            console.error('⚠️ تحذير! يبدو أن التنين منع التحديث! 🐉', error.response?.data);
             throw error.response?.data || 'خطأ غير متوقع';
         }
         throw 'حدث خطأ غير معروف';
@@ -132,6 +128,19 @@ export const createSubCategory = async (subCategoryData: SubCategoryData) => {
 export const deleteCategory = async (categoryId: string) => {
     try {
         const response = await axiosInstance.delete(`/categories/${categoryId}`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            throw error.response?.data || 'خطأ غير متوقع';
+        }
+        throw 'حدث خطأ غير معروف';
+    }
+};
+
+
+export const deleteSubCategory = async (subCategoryId: string) => {
+    try {
+        const response = await axiosInstance.delete(`/categories/sub/${subCategoryId}`);
         return response.data;
     } catch (error: unknown) {
         if (axios.isAxiosError(error)) {

@@ -161,32 +161,7 @@ const getCategories = async (req, res) => {
 };
 
 
-const deleteCategory = async (req, res) => {
-    try {
-        const { id } = req.params;
 
-        // التأكد من أن المستخدم أدمن
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: '🚫 الوصول مرفوض! فقط المسؤولين يمكنهم حذف الفئات.' });
-        }
-
-        // البحث عن الفئة المطلوبة
-        const category = await Category.findById(id);
-        if (!category) {
-            return res.status(404).json({ message: '❌ الفئة غير موجودة.' });
-        }
-
-        // حذف جميع الفئات الفرعية المرتبطة بها
-        await Category.deleteMany({ parent: id });
-
-        // حذف الفئة نفسها
-        await Category.findByIdAndDelete(id);
-        
-        res.json({ message: '✅ تم حذف الفئة وجميع الفئات الفرعية المرتبطة بها بنجاح' });
-    } catch (error) {
-        res.status(500).json({ message: '❌ حدث خطأ أثناء حذف الفئة', error: error.message });
-    }
-};
 const getCategoryById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -340,38 +315,101 @@ const updateCategory = async (req, res) => {
 
 const updateSubCategory = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { nameAr, nameEn, parentId } = req.body;
+        const { id } = req.params; // ID الفئة الفرعية
+        const { nameAr, nameEn } = req.body; // فقط الأسماء بدون parentId
 
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: '🚫 عذرًا، لكن فقط المسؤولين يمكنهم تعديل الفئات الفرعية! 🤖' });
+        // التحقق من المدخلات الأساسية
+        if (!nameAr || !nameEn) {
+            return res.status(400).json({ message: '❌ تأكد من إدخال الاسم باللغتين!' });
         }
 
-        if (!nameAr || !nameEn || !parentId) {
-            return res.status(400).json({ message: '❌ لا يمكننا تحديث هذه الفئة السحرية بدون جميع التفاصيل! تأكد من إدخال الاسم باللغتين وتحديد الفئة الرئيسية. 📝' });
-        }
-
+        console.log(`🔍 البحث عن الفئة الفرعية ID: ${id}`);
         const subCategory = await Category.findById(id);
         if (!subCategory) {
-            return res.status(404).json({ message: '🔍 أوه لا! لم نستطع العثور على هذه الفئة الفرعية، هل سافرت عبر الزمن؟ ⏳' });
+            return res.status(404).json({ message: '🔍 الفئة الفرعية غير موجودة!' });
         }
 
-        const parentCategory = await Category.findById(parentId);
-        if (!parentCategory) {
-            return res.status(400).json({ message: '❌ الفئة الرئيسية غير موجودة! الرجاء اختيار فئة صحيحة من عالمنا السحري! 🏰' });
-        }
+        console.log(`✅ الفئة الفرعية موجودة:`, subCategory);
 
+        // تحديث فقط الاسم
         subCategory.name.ar = nameAr;
         subCategory.name.en = nameEn;
-        subCategory.parent = parentId;
 
         await subCategory.save();
 
-        res.json({ message: `🎊 نجاح باهر! تم تحديث الفئة الفرعية إلى "${nameAr}" و "${nameEn}" بنجاح! 🚀`, subCategory });
+        res.json({ message: `🎊 تم التحديث بنجاح!`, subCategory });
+
     } catch (error) {
-        res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث الفئة الفرعية! لا تقلق، سنحاول مجددًا قريبًا! 🔄', error: error.message });
+        console.error("❌ خطأ أثناء التحديث:", error.message);
+        res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث الفئة الفرعية!', error: error.message });
+    }
+};
+const deleteCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // التأكد من أن المستخدم أدمن
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: '🚫 الوصول مرفوض! فقط المسؤولين يمكنهم حذف الفئات.' });
+        }
+
+        // البحث عن الفئة المطلوبة
+        const category = await Category.findById(id);
+        if (!category) {
+            return res.status(404).json({ message: '❌ الفئة غير موجودة.' });
+        }
+
+        // حذف جميع الفئات الفرعية المرتبطة بها
+        await Category.deleteMany({ parent: id });
+
+        // حذف الفئة نفسها
+        await Category.findByIdAndDelete(id);
+        
+        res.json({ message: '✅ تم حذف الفئة وجميع الفئات الفرعية المرتبطة بها بنجاح' });
+    } catch (error) {
+        res.status(500).json({ message: '❌ حدث خطأ أثناء حذف الفئة', error: error.message });
+    }
+};
+
+const deleteSubCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // ✅ التأكد من أن المستخدم أدمن
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: '🚫 عذرًا، فقط السحرة (المسؤولين) يمكنهم حذف الفئات الفرعية! 🧙‍♂️' });
+        }
+
+        // ✅ البحث عن الفئة الفرعية
+        const subCategory = await Category.findById(id);
+        if (!subCategory) {
+            return res.status(404).json({ message: '❌ أُووه! هذه الفئة الفرعية اختفت في العدم! 🕳️' });
+        }
+
+        // ✅ التأكد من عدم وجود منتجات مرتبطة بها
+        const productsCount = await Product.countDocuments({ subcategory: id });
+        if (productsCount > 0) {
+            return res.status(400).json({ message: `⚠️ لا يمكن حذف هذه الفئة الفرعية! يوجد ${productsCount} منتجًا مرتبطًا بها. قم بحذف المنتجات أولًا! 🛍️` });
+        }
+
+        // ✅ حذف الفئة الفرعية من القائمة داخل الفئة الرئيسية
+        if (subCategory.parent) {
+            const parentCategory = await Category.findById(subCategory.parent);
+            if (parentCategory) {
+                parentCategory.subcategories = parentCategory.subcategories.filter(subId => subId.toString() !== id);
+                await parentCategory.save();
+            }
+        }
+
+        // ✅ حذف الفئة الفرعية
+        await Category.findByIdAndDelete(id);
+
+        res.json({ message: `✅ تم حذف الفئة الفرعية "${subCategory.name.ar}" بنجاح! 🚀 وداعًا لها!` });
+
+    } catch (error) {
+        res.status(500).json({ message: '❌ أووه! حدث خطأ أثناء حذف الفئة الفرعية! 🛠️', error: error.message });
     }
 };
 
 
-module.exports = { createSubCategory, createMainCategory, getCategories, deleteCategory,getCategoryByIdfront, getCategoryById ,updateCategory, updateSubCategory};
+module.exports = {deleteSubCategory, createSubCategory, createMainCategory, getCategories, deleteCategory,getCategoryByIdfront, getCategoryById ,updateCategory, updateSubCategory};

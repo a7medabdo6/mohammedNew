@@ -187,8 +187,68 @@ const deleteCategory = async (req, res) => {
         res.status(500).json({ message: '❌ حدث خطأ أثناء حذف الفئة', error: error.message });
     }
 };
-
 const getCategoryById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // البحث عن الفئة وتحميل الفئات الفرعية التابعة لها
+        const category = await Category.findById(id)
+            .populate({
+                path: 'subcategories',
+                select: 'name subcategories',
+                populate: { path: 'subcategories', select: 'name' } // دعم التداخل المتعدد
+            });
+
+        if (!category) {
+            return res.status(404).json({ message: '❌ عذرًا! هذه الفئة غير موجودة في متجرنا السحري 🪄' });
+        }
+
+        // حساب عدد المنتجات في الفئة
+        const categoryProductCount = await Product.countDocuments({ category: category._id }).catch(() => 0);
+
+        // تجهيز الفئات الفرعية
+        const formattedSubcategories = await Promise.all(
+            category.subcategories.map(async (sub) => {
+                const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id }).catch(() => 0);
+
+                const formattedSubSubcategories = await Promise.all(
+                    sub.subcategories.map(async (subSub) => {
+                        const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id }).catch(() => 0);
+
+                        return {
+                            _id: subSub._id,
+                            name: subSub.name, // إرجاع الاسم بكل اللغات
+                            productCount: subSubcategoryProductCount
+                        };
+                    })
+                );
+
+                return {
+                    _id: sub._id,
+                    name: sub.name, // إرجاع الاسم بكل اللغات
+                    productCount: subcategoryProductCount,
+                    subcategories: formattedSubSubcategories
+                };
+            })
+        );
+
+        // إرسال البيانات مع اللغتين
+        res.json({
+            message: `🎉 لقد عثرت على كنز! هذه هي تفاصيل الفئة المطلوبة:`,
+            category: {
+                _id: category._id,
+                name: category.name, // إرجاع الاسم بالعربية والإنجليزية
+                productCount: categoryProductCount,
+                subcategories: formattedSubcategories
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: '❌ حدث خطأ أثناء البحث عن الفئة 🛠️', error: error.message });
+    }
+};
+
+
+const getCategoryByIdfront = async (req, res) => {
     try {
         const { id } = req.params;
         const { lang = 'en' } = req.query; // تحديد اللغة الافتراضية (الإنجليزية)
@@ -248,4 +308,70 @@ const getCategoryById = async (req, res) => {
     }
 };
 
-module.exports = { createSubCategory, createMainCategory, getCategories, deleteCategory, getCategoryById };
+
+const updateCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nameAr, nameEn } = req.body;
+
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: '🚫 عفوًا أيها المغامر! فقط المسؤولين يمكنهم تعديل الفئات السحرية! 🧙‍♂️' });
+        }
+
+        if (!nameAr || !nameEn) {
+            return res.status(400).json({ message: '❌ يبدو أنك نسيت إضافة الاسم باللغة العربية أو الإنجليزية! الرجاء إدخالهما لاستكمال التحديث. 📜' });
+        }
+
+        const category = await Category.findById(id);
+        if (!category) {
+            return res.status(404).json({ message: '🕵️‍♂️ للأسف! هذه الفئة اختفت في الضباب السحري، حاول مرة أخرى!' });
+        }
+
+        category.name.ar = nameAr;
+        category.name.en = nameEn;
+
+        await category.save();
+
+        res.json({ message: `✨ تهانينا! تم تحديث الفئة بنجاح إلى "${nameAr}" و "${nameEn}" 🎉`, category });
+    } catch (error) {
+        res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث الفئة 🛠️، الرجاء المحاولة لاحقًا!', error: error.message });
+    }
+};
+
+const updateSubCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nameAr, nameEn, parentId } = req.body;
+
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: '🚫 عذرًا، لكن فقط المسؤولين يمكنهم تعديل الفئات الفرعية! 🤖' });
+        }
+
+        if (!nameAr || !nameEn || !parentId) {
+            return res.status(400).json({ message: '❌ لا يمكننا تحديث هذه الفئة السحرية بدون جميع التفاصيل! تأكد من إدخال الاسم باللغتين وتحديد الفئة الرئيسية. 📝' });
+        }
+
+        const subCategory = await Category.findById(id);
+        if (!subCategory) {
+            return res.status(404).json({ message: '🔍 أوه لا! لم نستطع العثور على هذه الفئة الفرعية، هل سافرت عبر الزمن؟ ⏳' });
+        }
+
+        const parentCategory = await Category.findById(parentId);
+        if (!parentCategory) {
+            return res.status(400).json({ message: '❌ الفئة الرئيسية غير موجودة! الرجاء اختيار فئة صحيحة من عالمنا السحري! 🏰' });
+        }
+
+        subCategory.name.ar = nameAr;
+        subCategory.name.en = nameEn;
+        subCategory.parent = parentId;
+
+        await subCategory.save();
+
+        res.json({ message: `🎊 نجاح باهر! تم تحديث الفئة الفرعية إلى "${nameAr}" و "${nameEn}" بنجاح! 🚀`, subCategory });
+    } catch (error) {
+        res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث الفئة الفرعية! لا تقلق، سنحاول مجددًا قريبًا! 🔄', error: error.message });
+    }
+};
+
+
+module.exports = { createSubCategory, createMainCategory, getCategories, deleteCategory,getCategoryByIdfront, getCategoryById ,updateCategory, updateSubCategory};

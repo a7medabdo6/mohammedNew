@@ -34,7 +34,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/fav', favRoutes);
-app.use('/api/order', orderRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/site-info', siteInfoRoutes);
 
 

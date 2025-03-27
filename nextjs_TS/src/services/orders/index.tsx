@@ -36,3 +36,40 @@ export const updateOrderStatus = async (orderId: string, status: string): Promis
     return false;
   }
 };
+
+
+export const deleteOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    // إرسال طلب حذف للـ backend
+    await axiosInstance.delete(`/orders/${orderId}`);
+    return true;
+  } catch (error) {
+    console.error("خطأ في حذف الطلب:", error);
+    return false;
+  }
+};
+
+
+// نوع بيانات الطلب
+interface Order {
+  _id: string;
+  user: { name: string; email: string };
+  items: { product: string; quantity: number }[];
+  totalAmount: number;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  address: string;
+  paymentMethod: "credit_card" | "paypal" | "cash_on_delivery";
+  createdAt: string;
+}
+
+// 3️⃣ جلب تفاصيل الطلب باستخدام Axios
+export const fetchOrderById = async (orderId: string): Promise<Order | null> => {
+  try {
+    // إرسال طلب GET للحصول على تفاصيل الطلب حسب الـ ID
+    const response = await axiosInstance.get(`/orders/${orderId}`);
+    return response.data.order; // Assuming the response contains an order object
+  } catch (error) {
+    console.error("خطأ في جلب تفاصيل الطلب:", error);
+    return null; // Return null if there's an error
+  }
+};

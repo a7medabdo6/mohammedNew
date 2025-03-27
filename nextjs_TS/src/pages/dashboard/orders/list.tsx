@@ -33,7 +33,21 @@ import {
   TableSelectedAction,
   TablePaginationCustom,
 } from '../../../components/table';
-import { updateOrderStatus, fetchOrders} from 'src/services/orders';
+import { updateOrderStatus, fetchOrders ,deleteOrder} from 'src/services/orders';
+
+// Define types
+interface User {
+  email: string;
+}
+
+interface Order {
+  _id: string;
+  user: User;
+  totalAmount: number;
+  status: string;
+  address: string;
+  paymentMethod: string;
+}
 
 const STATUS_OPTIONS = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const TABLE_HEAD = [
@@ -67,7 +81,7 @@ export default function OrdersListPage() {
 
   const { themeStretch } = useSettingsContext();
   const { push } = useRouter();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
@@ -86,10 +100,25 @@ export default function OrdersListPage() {
   const handleUpdateStatus = async (orderId: string, status: string) => {
     const success = await updateOrderStatus(orderId, status);
     if (success) {
-      setOrders((prevOrders) => prevOrders.map((order) => (order._id === orderId ? { ...order, status } : order)));
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === orderId ? { ...order, status } : order
+        )
+      );
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this order?");
+    if (!confirmDelete) return;
+
+    const success = await deleteOrder(orderId);
+    if (success) {
+      setOrders((prevOrders) => prevOrders.filter((order) => order._id !== orderId)); // Update state to remove the deleted order
+    } else {
+      alert("An error occurred while deleting the order.");
+    }
+  };
   return (
     <>
       <Head>
@@ -146,6 +175,16 @@ export default function OrdersListPage() {
                       </td>
                       <td>{order.address}</td>
                       <td>{order.paymentMethod}</td>
+                      <NextLink href={`/dashboard/orders/${order._id}`} passHref>
+                          <IconButton color="primary">
+                            <Iconify icon="eva:eye-fill" width={20} height={20} />
+                          </IconButton>
+                        </NextLink>
+                      <td>
+                        <IconButton onClick={() => handleDeleteOrder(order._id)} color="error">
+                          <Iconify icon="eva:trash-2-outline" width={20} height={20} />
+                        </IconButton>
+                      </td>
                     </tr>
                   ))}
 

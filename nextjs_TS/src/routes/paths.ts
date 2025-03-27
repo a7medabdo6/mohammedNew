@@ -86,6 +86,8 @@ export const PATH_DASHBOARD = {
     cards: path(ROOTS_DASHBOARD, '/orders/cards'),
     profile: path(ROOTS_DASHBOARD, '/orders/profile'),
     account: path(ROOTS_DASHBOARD, '/orders/account'),
+    view: (name: string) => path(ROOTS_DASHBOARD, `/orders/product/${name}`),
+
     edit: (name: string) => path(ROOTS_DASHBOARD, `/orders/${name}/edit`),
     demoEdit: path(ROOTS_DASHBOARD, `/orders/reece-chung/edit`),
   },

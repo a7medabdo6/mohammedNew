@@ -2,5 +2,22 @@
     "HomePage": {
       "title": "Hello world!",
       "about": "Go to the about page"
-    }
+    },
+    "LoginPage": {
+    "title": "Login",
+    "description": "Get access to your Orders, Wishlist, and Recommendations.",
+    "emailLabel": "Email Address*",
+    "emailPlaceholder": "Enter your email...",
+    "emailError": "Please enter a valid username.",
+    "passwordLabel": "Password*",
+    "passwordPlaceholder": "Enter your password",
+    "passwordError": "Password must be at least 6 characters.",
+    "forgotPassword": "Forgot Password?",
+    "createAccount": "Create Account?",
+    "loginButton": "Login",
+    "loading": "Loading...",  
+
+    "loginSuccess": "User Login Success",
+    "loginError": "Invalid email or password"
+  }
   }

@@ -3,12 +3,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Breadcrumb from "../breadcrumb/Breadcrumb";
 import { useRouter } from "next/navigation";
-import { Container, Form } from "react-bootstrap";
+import { Container, Form, Spinner } from "react-bootstrap"; // ✅ إضافة Spinner للتحميل
 import { showErrorToast, showSuccessToast } from "../toast-popup/Toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "@/store/reducers/registrationSlice";
 import { RootState } from "@/store";
-import {useTranslations} from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { loginUserAsync } from "@/store/reducers/loginSlice"; // ✅ استيراد loginUserAsync
 
 interface Registration {
   firstName: string;
@@ -25,7 +26,8 @@ interface Registration {
 }
 
 const LoginPage = () => {
-   const t = useTranslations('HomePage');
+  const t = useTranslations('LoginPage');
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,8 +35,12 @@ const LoginPage = () => {
   const [validated, setValidated] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector(
-    (state: RootState) => state.registration.isAuthenticated
+  // const isAuthenticated = useSelector(
+  //   (state: RootState) => state.registration.isAuthenticated
+  // );
+
+  const { isAuthenticated, loading, error } = useSelector(
+    (state: RootState) => state.login // ✅ تحديث المرجع إلى login بدلاً من registration
   );
 
   useEffect(() => {
@@ -50,76 +56,69 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, router]);
 
-  const handleLogin = (e: any) => {
+  
+  const handleLogin = async (e: any) => {
     e.preventDefault();
 
     const form = e.currentTarget;
     if (form.checkValidity() === false) {
       e.stopPropagation();
-    }
-
-    const foundUser = registrations.find(
-      (user) => user.email === email && user.password === password
-    );
-
-    if (foundUser) {
-      const userData = { uid: foundUser.uid, email, password };
-      localStorage.setItem("login_user", JSON.stringify(userData));
-      dispatch(login(foundUser));
-      showSuccessToast("User Login Success");
-    } else {
-      showErrorToast("Invalid email or password");
+      setValidated(true);
+      return;
     }
 
     setValidated(true);
+
+    try {
+      const response = await dispatch(
+        loginUserAsync({ email, password }) as any // ✅ استدعاء loginUserAsync
+      ).unwrap(); // استخدام unwrap لاستخراج البيانات أو التعامل مع الخطأ
+
+      if (response) {
+        showSuccessToast("User Login Success");
+      }
+    } catch (error) {
+      showErrorToast(error || "Invalid email or password");
+    }
   };
 
   return (
     <>
-      <Breadcrumb title={"Login Page"} />
+      <Breadcrumb title={t("title")} />
       <section className="gi-login padding-tb-40">
         <Container>
           <div className="section-title-2">
-             <h1>{t('title')}</h1>
-
             <h2 className="gi-title">
-              Login<span></span>
+              {t("title")}
+              <span></span>
             </h2>
-            <p>Get access to your Orders, Wishlist and Recommendations.</p>
+            <p>{t("description")}</p>
           </div>
           <div className="gi-login-content">
             <div className="gi-login-box">
               <div className="gi-login-wrapper">
                 <div className="gi-login-container">
                   <div className="gi-login-form">
-                    <Form
-                      noValidate
-                      validated={validated}
-                      action="#"
-                      method="post"
-                    >
+                    <Form noValidate validated={validated} action="#" method="post">
                       <span className="gi-login-wrap">
-                        <label>Email Address*</label>
+                        <label>{t("emailLabel")}</label>
                         <Form.Group>
                           <Form.Control
                             type="text"
-                            name="name"
+                            name="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter your email add..."
+                            placeholder={t("emailPlaceholder")}
                             required
                           />
                           <Form.Control.Feedback type="invalid">
-                            Please Enter correct username.
+                            {t("emailError")}
                           </Form.Control.Feedback>
                         </Form.Group>
                       </span>
 
-                      <span
-                        style={{ marginTop: "24px" }}
-                        className="gi-login-wrap"
-                      >
-                        <label>Password*</label>
+                      <span style={{ marginTop: "24px" }} className="gi-login-wrap">
+                        <label>{t("passwordLabel")}</label>
                         <Form.Group>
                           <Form.Control
                             type="password"
@@ -127,32 +126,38 @@ const LoginPage = () => {
                             min={6}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            placeholder={t("passwordPlaceholder")}
                             required
                           />
                           <Form.Control.Feedback type="invalid">
-                            Password must be at least 6 characters
+                            {t("passwordError")}
                           </Form.Control.Feedback>
                         </Form.Group>
                       </span>
 
                       <span className="gi-login-wrap gi-login-fp">
                         <label>
-                          <Link href="/forgot-password">Forgot Password?</Link>
+                          <Link href="/forgot-password">{t("forgotPassword")}</Link>
                         </label>
                       </span>
                       <span className="gi-login-wrap gi-login-btn">
                         <span>
-                          <a href="/register" className="">
-                            Create Account?
-                          </a>
+                          <a href="/register">{t("createAccount")}</a>
                         </span>
                         <button
                           onClick={handleLogin}
                           className="gi-btn-1 btn"
                           type="submit"
+                          disabled={ !email || !password} // ✅ تعطيل الزر عند التحميل أو إذا كانت الحقول فارغة
+
                         >
-                          Login
+                          {loading ? (
+                            <>
+                              <Spinner animation="border" size="sm" /> {t("loading")} {/* ✅ عرض مؤشر تحميل */}
+                            </>
+                          ) : (
+                            t("loginButton")
+                          )}
                         </button>
                       </span>
                     </Form>
@@ -163,9 +168,7 @@ const LoginPage = () => {
             <div className="gi-login-box d-n-991">
               <div className="gi-login-img">
                 <img
-                  src={
-                    process.env.NEXT_PUBLIC_URL + "/assets/img/common/login.png"
-                  }
+                  src={process.env.NEXT_PUBLIC_URL + "/assets/img/common/login.png"}
                   alt="login"
                 />
               </div>
@@ -174,6 +177,7 @@ const LoginPage = () => {
         </Container>
       </section>
     </>
+
   );
 };
 

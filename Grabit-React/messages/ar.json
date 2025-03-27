@@ -2,5 +2,22 @@
     "HomePage": {
       "title": "مرحبا",
       "about": "Go to the about page"
+    },
+    "LoginPage": {
+      "title": "تسجيل الدخول",
+      "description": "احصل على الوصول إلى طلباتك، قائمة الرغبات، والتوصيات.",
+      "emailLabel": "عنوان البريد الإلكتروني*",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني...",
+      "emailError": "يرجى إدخال اسم مستخدم صحيح.",
+      "passwordLabel": "كلمة المرور*",
+      "passwordPlaceholder": "أدخل كلمة المرور الخاصة بك",
+      "passwordError": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+      "forgotPassword": "هل نسيت كلمة المرور؟",
+      "loading": "جاري تسجيل الدخول...",  
+
+      "createAccount": "إنشاء حساب؟",
+      "loginButton": "تسجيل الدخول",
+      "loginSuccess": "تم تسجيل الدخول بنجاح",
+      "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
     }
   }

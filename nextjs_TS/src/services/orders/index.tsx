@@ -64,6 +64,7 @@ interface Order {
 
 // 3️⃣ جلب تفاصيل الطلب باستخدام Axios
 export const fetchOrderById = async (orderId: string): Promise<Order | null> => {
+  console.log(orderId)
   try {
     // إرسال طلب GET للحصول على تفاصيل الطلب حسب الـ ID
     const response = await axiosInstance.get(`/orders/${orderId}`);

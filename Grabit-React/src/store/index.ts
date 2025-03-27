@@ -11,6 +11,7 @@ import compareSlice from "./reducers/compareSlice";
 import stepSlice from "./reducers/stepSlice";
 import filterReducer from "./reducers/filterReducer";
 import themeSlice from "./reducers/themeSlice";
+import loginReducer from "./reducers/loginSlice"; // ✅ إضافة loginSlice
 
 // Configure persist for each slice separately
 const persistConfigCart = { key: "cart", storage };
@@ -20,6 +21,7 @@ const persistConfigCompare = { key: "compare", storage };
 const persistConfigStep = { key: "step", storage };
 const persistConfigFilter = { key: "filter", storage };
 const persistConfigTheme = { key: "theme", storage };
+const persistConfigLogin = { key: "login", storage }; // ✅ إضافة login
 
 // Wrap each reducer with persistReducer
 const persistedCartReducer = persistReducer(persistConfigCart, cartSlice);
@@ -41,6 +43,7 @@ const persistedFilterReducer = persistReducer(
   filterReducer
 );
 const persistedThemeReducer = persistReducer(persistConfigTheme, themeSlice);
+const persistedLoginReducer = persistReducer(persistConfigLogin, loginReducer); // ✅ تغليف loginSlice
 
 // Combine reducers
 const rootReducer = combineReducers({
@@ -51,6 +54,8 @@ const rootReducer = combineReducers({
   step: persistedStepReducer,
   filter: persistedFilterReducer,
   theme: persistedThemeReducer,
+  login: persistedLoginReducer, // ✅ إضافته هنا
+
 });
 
 // Configure store

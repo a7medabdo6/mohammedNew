@@ -6,16 +6,23 @@ import SidebarCart from "../../../model/SidebarCart";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store";
-import { logout, setUserData } from "@/store/reducers/registrationSlice";
+import { setUserData } from "@/store/reducers/registrationSlice";
 import { setSearchTerm } from "@/store/reducers/filterReducer";
+import { usePathname } from "next/navigation"; // ✅ الحصول على اللغة من المسار
+import { logout } from "@/store/reducers/loginSlice";
 
 function HeaderTwo({ cartItems, wishlistItems }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
-  const isAuthenticated = useSelector(
-    (state: RootState) => state.registration.isAuthenticated
-  );
+    const pathname = usePathname(); // ✅ الحصول على المسار الحالي
+    const locale = pathname.split("/")[1]; // ✅ استخراج اللغة
+  // const isAuthenticated = useSelector(
+  //   (state: RootState) => state.registration.isAuthenticated
+  // );
+   const { isAuthenticated, loading, error } = useSelector(
+      (state: RootState) => state.login // ✅ تحديث المرجع إلى login بدلاً من registration
+    );
   const { searchTerm } = useSelector((state: RootState) => state.filter);
   const [searchInput, setSearchInput] = useState(searchTerm || "");
 
@@ -42,7 +49,7 @@ function HeaderTwo({ cartItems, wishlistItems }) {
   const closeCart = () => {
     setIsCartOpen(false);
   };
-
+  
   const handleLogout = () => {
     localStorage.removeItem("login_user");
     dispatch(logout());
@@ -148,7 +155,7 @@ function HeaderTwo({ cartItems, wishlistItems }) {
                             </Link>
                           </li>
                           <li>
-                            <Link className="dropdown-item" href="/login">
+                            <Link className="dropdown-item" href={`/${locale}/login`}>
                               Login
                             </Link>
                           </li>

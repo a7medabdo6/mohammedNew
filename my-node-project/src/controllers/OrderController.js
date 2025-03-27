@@ -37,12 +37,40 @@ const createOrder = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.find().populate('user', 'name email');
+        const { status } = req.query;
+        const filter = status ? { status } : {}; // تطبيق الفلترة فقط إذا تم تمرير الحالة في الاستعلام
+
+        const orders = await Order.find(filter).populate('user', 'name email');
         res.status(200).json({ orders });
     } catch (error) {
         res.status(500).json({ message: 'خطأ في الخادم', error: error.message });
     }
 };
+
+// تحديث حالة الطلب
+const updateOrderStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        // التحقق من أن الحالة المدخلة صحيحة
+        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'حالة غير صحيحة' });
+        }
+
+        const order = await Order.findByIdAndUpdate(orderId, { status }, { new: true });
+
+        if (!order) {
+            return res.status(404).json({ message: 'الطلب غير موجود' });
+        }
+
+        res.status(200).json({ message: 'تم تحديث حالة الطلب بنجاح', order });
+    } catch (error) {
+        res.status(500).json({ message: 'خطأ في الخادم', error: error.message });
+    }
+};
+
 
 const getUserOrders = async (req, res) => {
     try {
@@ -54,4 +82,4 @@ const getUserOrders = async (req, res) => {
     }
 };
 
-module.exports = { createOrder,getUserOrders,getAllOrders };
+module.exports = { createOrder,getUserOrders,getAllOrders ,updateOrderStatus};

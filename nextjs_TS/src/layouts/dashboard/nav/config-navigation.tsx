@@ -82,6 +82,21 @@ const navConfig = [
           { title: 'account', path: PATH_DASHBOARD.category.account },
         ],
       },
+      {
+        title: 'orders',
+        path: PATH_DASHBOARD.orders.root,
+        icon: ICONS.user,
+        children: [
+          { title: 'profile', path: PATH_DASHBOARD.orders.profile },
+          { title: 'cards', path: PATH_DASHBOARD.orders.cards },
+          { title: 'list', path: PATH_DASHBOARD.orders.list },
+          { title: 'create', path: PATH_DASHBOARD.orders.new },
+          { title: 'edit', path: PATH_DASHBOARD.orders.demoEdit },
+          { title: 'account', path: PATH_DASHBOARD.orders.account },
+        ],
+      },
+    
+      
 
       // E-COMMERCE
       {

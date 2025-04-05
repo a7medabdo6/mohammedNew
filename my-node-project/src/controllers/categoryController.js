@@ -4,37 +4,45 @@ const Product = require('../models/Product'); // تأكد من أن المسار
 
 const createMainCategory = async (req, res) => {
     try {
-        const { nameAr, nameEn } = req.body;
-
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: '🚫 فقط المسؤولين يمكنهم إنشاء الفئات الرئيسية.' });
-        }
-
-        if (!nameAr || !nameEn) {
-            return res.status(400).json({ message: '❌ يجب إدخال اسم الفئة باللغتين العربية والإنجليزية.' });
-        }
-
-        // التحقق من وجود فئة بنفس الاسم
-        const existingCategory = await Category.findOne({
-            $or: [{ "name.ar": nameAr }, { "name.en": nameEn }]
-        });
-
-        if (existingCategory) {
-            return res.status(400).json({ message: '❌ الفئة بهذا الاسم موجودة بالفعل.' });
-        }
-
-        const newCategory = new Category({
-            name: { ar: nameAr, en: nameEn },
-            parent: null
-        });
-
-        await newCategory.save();
-
-        res.status(201).json({ message: '✅ تم إنشاء الفئة الرئيسية بنجاح', category: newCategory });
+      const { nameAr, nameEn, icon } = req.body;
+  
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: '🚫 فقط المسؤولين يمكنهم إنشاء الفئات الرئيسية.' });
+      }
+  
+      if (!nameAr || !nameEn) {
+        return res.status(400).json({ message: '❌ يجب إدخال اسم الفئة باللغتين العربية والإنجليزية.' });
+      }
+  
+      // التحقق من وجود فئة بنفس الاسم
+      const existingCategory = await Category.findOne({
+        $or: [{ "name.ar": nameAr }, { "name.en": nameEn }]
+      });
+  
+      if (existingCategory) {
+        return res.status(400).json({ message: '❌ الفئة بهذا الاسم موجودة بالفعل.' });
+      }
+  
+      const newCategory = new Category({
+        name: { ar: nameAr, en: nameEn },
+        icon: icon || '', // ✅ تعيين الأيقونة إن وجدت أو قيمة فارغة
+        parent: null
+      });
+  
+      await newCategory.save();
+  
+      res.status(201).json({
+        message: '✅ تم إنشاء الفئة الرئيسية بنجاح',
+        category: newCategory
+      });
     } catch (error) {
-        res.status(500).json({ message: '❌ حدث خطأ أثناء إنشاء الفئة الرئيسية', error: error.message });
+      res.status(500).json({
+        message: '❌ حدث خطأ أثناء إنشاء الفئة الرئيسية',
+        error: error.message
+      });
     }
-};
+  };
+  
 const createSubCategory = async (req, res) => {
     try {
         const { nameAr, nameEn, parentId } = req.body;
@@ -89,77 +97,83 @@ const createSubCategory = async (req, res) => {
 
 const getCategories = async (req, res) => {
     try {
-        const { lang = 'en', page = 1, limit = 10, search = '' } = req.query;
-        const pageNumber = parseInt(page, 10);
-        const pageSize = parseInt(limit, 10);
-        
-        // بناء فلتر البحث
-        const searchFilter = search
-            ? { $or: [{ [`name.${lang}`]: new RegExp(search, 'i') }, { 'name.en': new RegExp(search, 'i') }] }
-            : {};
-
-        // جلب الفئات الرئيسية فقط مع التصفية والصفحات
-        const categories = await Category.find({ parent: null, ...searchFilter })
-            .populate({
-                path: 'subcategories',
-                select: 'name subcategories',
-                populate: { path: 'subcategories', select: 'name' }
+      const { lang = 'en', page = 1, limit = 10, search = '' } = req.query;
+      const pageNumber = parseInt(page, 10);
+      const pageSize = parseInt(limit, 10);
+  
+      // بناء فلتر البحث
+      const searchFilter = search
+        ? { $or: [{ [`name.${lang}`]: new RegExp(search, 'i') }, { 'name.en': new RegExp(search, 'i') }] }
+        : {};
+  
+      // جلب الفئات الرئيسية فقط مع التصفية والصفحات
+      const categories = await Category.find({ parent: null, ...searchFilter })
+        .populate({
+          path: 'subcategories',
+          select: 'name icon subcategories',
+          populate: {
+            path: 'subcategories',
+            select: 'name icon'
+          }
+        })
+        .skip((pageNumber - 1) * pageSize)
+        .limit(pageSize);
+  
+      // حساب إجمالي عدد الفئات بدون تقسيم صفحات
+      const totalCategories = await Category.countDocuments({ parent: null, ...searchFilter });
+  
+      const formattedCategories = await Promise.all(
+        categories.map(async (category) => {
+          const categoryProductCount = await Product.countDocuments({ category: category._id });
+  
+          const formattedSubcategories = await Promise.all(
+            category.subcategories.map(async (sub) => {
+              const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id });
+  
+              const formattedSubSubcategories = await Promise.all(
+                sub.subcategories.map(async (subSub) => {
+                  const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id });
+  
+                  return {
+                    _id: subSub._id,
+                    name: subSub.name[lang] || subSub.name.en,
+                    icon: subSub.icon || '', // ✅ إضافة الأيقونة
+                    productCount: subSubcategoryProductCount
+                  };
+                })
+              );
+  
+              return {
+                _id: sub._id,
+                name: sub.name[lang] || sub.name.en,
+                icon: sub.icon || '', // ✅ إضافة الأيقونة
+                productCount: subcategoryProductCount,
+                subcategories: formattedSubSubcategories
+              };
             })
-            .skip((pageNumber - 1) * pageSize)
-            .limit(pageSize);
-
-        // حساب إجمالي عدد الفئات بدون تقسيم صفحات
-        const totalCategories = await Category.countDocuments({ parent: null, ...searchFilter });
-
-        const formattedCategories = await Promise.all(
-            categories.map(async (category) => {
-                const categoryProductCount = await Product.countDocuments({ category: category._id });
-
-                const formattedSubcategories = await Promise.all(
-                    category.subcategories.map(async (sub) => {
-                        const subcategoryProductCount = await Product.countDocuments({ subcategory: sub._id });
-
-                        const formattedSubSubcategories = await Promise.all(
-                            sub.subcategories.map(async (subSub) => {
-                                const subSubcategoryProductCount = await Product.countDocuments({ subcategory: subSub._id });
-
-                                return {
-                                    _id: subSub._id,
-                                    name: subSub.name[lang] || subSub.name.en,
-                                    productCount: subSubcategoryProductCount
-                                };
-                            })
-                        );
-
-                        return {
-                            _id: sub._id,
-                            name: sub.name[lang] || sub.name.en,
-                            productCount: subcategoryProductCount,
-                            subcategories: formattedSubSubcategories
-                        };
-                    })
-                );
-
-                return {
-                    _id: category._id,
-                    name: category.name[lang] || category.name.en,
-                    productCount: categoryProductCount,
-                    subcategories: formattedSubcategories
-                };
-            })
-        );
-
-        res.json({
-            categories: formattedCategories,
-            totalCategories,
-            totalPages: Math.ceil(totalCategories / pageSize),
-            currentPage: pageNumber
-        });
+          );
+  
+          return {
+            _id: category._id,
+            name: category.name[lang] || category.name.en,
+            icon: category.icon || '', // ✅ إضافة الأيقونة
+            productCount: categoryProductCount,
+            subcategories: formattedSubcategories
+          };
+        })
+      );
+  
+      res.json({
+        categories: formattedCategories,
+        totalCategories,
+        totalPages: Math.ceil(totalCategories / pageSize),
+        currentPage: pageNumber
+      });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching categories', error: error.message });
+      res.status(500).json({ message: 'Error fetching categories', error: error.message });
     }
-};
-
+  };
+  
 
 
 const getCategoryById = async (req, res) => {
@@ -286,32 +300,50 @@ const getCategoryByIdfront = async (req, res) => {
 
 const updateCategory = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { nameAr, nameEn } = req.body;
-
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: '🚫 عفوًا أيها المغامر! فقط المسؤولين يمكنهم تعديل الفئات السحرية! 🧙‍♂️' });
-        }
-
-        if (!nameAr || !nameEn) {
-            return res.status(400).json({ message: '❌ يبدو أنك نسيت إضافة الاسم باللغة العربية أو الإنجليزية! الرجاء إدخالهما لاستكمال التحديث. 📜' });
-        }
-
-        const category = await Category.findById(id);
-        if (!category) {
-            return res.status(404).json({ message: '🕵️‍♂️ للأسف! هذه الفئة اختفت في الضباب السحري، حاول مرة أخرى!' });
-        }
-
-        category.name.ar = nameAr;
-        category.name.en = nameEn;
-
-        await category.save();
-
-        res.json({ message: `✨ تهانينا! تم تحديث الفئة بنجاح إلى "${nameAr}" و "${nameEn}" 🎉`, category });
+      const { id } = req.params;
+      const { nameAr, nameEn, icon } = req.body;
+  
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          message: '🚫 عفوًا أيها المغامر! فقط المسؤولين يمكنهم تعديل الفئات السحرية! 🧙‍♂️'
+        });
+      }
+  
+      if (!nameAr || !nameEn) {
+        return res.status(400).json({
+          message: '❌ يبدو أنك نسيت إضافة الاسم باللغة العربية أو الإنجليزية! الرجاء إدخالهما لاستكمال التحديث. 📜'
+        });
+      }
+  
+      const category = await Category.findById(id);
+      if (!category) {
+        return res.status(404).json({
+          message: '🕵️‍♂️ للأسف! هذه الفئة اختفت في الضباب السحري، حاول مرة أخرى!'
+        });
+      }
+  
+      category.name.ar = nameAr;
+      category.name.en = nameEn;
+  
+      // ✅ تحديث الأيقونة إن وُجدت
+      if (icon !== undefined) {
+        category.icon = icon;
+      }
+  
+      await category.save();
+  
+      res.json({
+        message: `✨ تهانينا! تم تحديث الفئة بنجاح إلى "${nameAr}" و "${nameEn}" 🎉`,
+        category
+      });
     } catch (error) {
-        res.status(500).json({ message: '❌ حدث خطأ أثناء تحديث الفئة 🛠️، الرجاء المحاولة لاحقًا!', error: error.message });
+      res.status(500).json({
+        message: '❌ حدث خطأ أثناء تحديث الفئة 🛠️، الرجاء المحاولة لاحقًا!',
+        error: error.message
+      });
     }
-};
+  };
+  
 
 const updateSubCategory = async (req, res) => {
     try {

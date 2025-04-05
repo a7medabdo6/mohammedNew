@@ -64,3 +64,28 @@ export interface Order {
   status: string;
   products: Product[];
 }
+
+export interface SubSubcategory {
+  _id: string;
+  name: string;
+  icon: string; // تأكد من إضافة هذه الخاصية
+
+  productCount: number;
+}
+
+export interface Subcategory {
+  _id: string;
+  name: string;
+  productCount: number;
+  icon: string; // تأكد من إضافة هذه الخاصية
+
+  subcategories: SubSubcategory[];
+}
+
+export interface Category {
+  _id: string;
+  name: string;
+  icon: string;
+  productCount: number;
+  subcategories: Subcategory[];
+}

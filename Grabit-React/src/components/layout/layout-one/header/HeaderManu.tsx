@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import home from "../../../../utility/header/home";
 import classic from "../../../../utility/header/classic";
 import banner from "../../../../utility/header/benner";
@@ -7,21 +7,29 @@ import column from "../../../../utility/header/columns";
 import list from "../../../../utility/header/list";
 import blog from "../../../../utility/header/blog";
 import pages from "../../../../utility/header/pages";
-import fruits from "../../../../utility/header/fruits";
-import bakery from "../../../../utility/header/bakery";
-import snacks from "../../../../utility/header/snacks";
-import spice from "../../../../utility/header/spice";
-import juice from "../../../../utility/header/juice";
-import softdrink from "../../../../utility/header/softdrink";
+
 import Link from "next/link";
 import productpage from "../../../../utility/header/productpage";
 import CurrentLocation from "./CurrentLocation";
 import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import { Fade } from "react-awesome-reveal";
+import getCategories from "@/servers/Categories";
+import { Category } from "@/types";
 
 function HeaderManu() {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  console.log(categories)
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await getCategories({ lang: "en", page: 1, limit: 10 });
+      if (result) {
+        setCategories(result.categories);
+      }
+    };
 
+    fetchData();
+  }, []);
   const handleProductClick = (index: number) => {
     setSelectedIndex(index);
   };
@@ -32,265 +40,88 @@ function HeaderManu() {
           <div className="gi-nav-bar">
             {/* <!-- Category Toggle --> */}
             <Tabs
-              selectedIndex={selectedIndex}
-              onSelect={(selectedIndex) => setSelectedIndex(selectedIndex)}
-              className="gi-category-icon-block"
+  selectedIndex={selectedIndex}
+  onSelect={(selectedIndex) => setSelectedIndex(selectedIndex)}
+  className="gi-category-icon-block"
+>
+  <div className="gi-category-menu">
+    <div className="gi-category-toggle">
+      <i className="fi fi-rr-apps"></i>
+      <span className="text">All Categories</span>
+      <i
+        className="fi-rr-angle-small-down d-1199 gi-angle"
+        aria-hidden="true"
+      ></i>
+    </div>
+  </div>
+  <div className="gi-cat-dropdown">
+    <div className="gi-cat-block">
+      <div className="gi-cat-tab">
+        <TabList>
+          <div
+            className="gi-tab-list nav flex-column nav-pills me-3"
+            id="v-pills-tab"
+            role="tablist"
+            aria-orientation="vertical"
+          >
+            {categories.map((category, index) => (
+              <Tab key={category._id}>
+                <button
+                  className={`nav-link ${selectedIndex === index ? "active" : ""}`}
+                  onClick={() => handleProductClick(index)}
+                  id={`v-pills-${category._id}-tab`}
+                  data-bs-toggle="pill"
+                  data-bs-target={`#v-pills-${category._id}`}
+                  type="button"
+                  role="tab"
+                  aria-controls={`v-pills-${category._id}`}
+                  aria-selected={selectedIndex === index}
+                  style={{
+                    padding: "10px 50px 10px 20px",
+                    marginBottom: "10px",
+                  }}
+                >
+
+                  <i className={category.icon}></i> {category.name}
+                </button>
+              </Tab>
+            ))}
+          </div>
+        </TabList>
+
+        <div className="tab-content" id="v-pills-tabContent">
+          {categories.map((category, index) => (
+            <TabPanel
+              key={category._id}
+              className={`tab-pane fade ${selectedIndex === index ? "show active product-block" : ""}`}
+              role="tabpanel"
+              aria-labelledby={`v-pills-${category._id}-tab`}
             >
-              <div className="gi-category-menu">
-                <div className="gi-category-toggle">
-                  <i className="fi fi-rr-apps"></i>
-                  <span className="text">All Categories</span>
-                  <i
-                    className="fi-rr-angle-small-down d-1199 gi-angle"
-                    aria-hidden="true"
-                  ></i>
-                </div>
-              </div>
-              <div className="gi-cat-dropdown">
-                <div className="gi-cat-block">
-                  <div className="gi-cat-tab">
-                    <TabList>
-                      <div
-                        className="gi-tab-list nav flex-column nav-pills me-3"
-                        id="v-pills-tab"
-                        role="tablist"
-                        aria-orientation="vertical"
-                      >
-                        <Tab>
-                          <button
-                            className={`tab nav-link ${
-                              selectedIndex == 0 ? "active" : ""
-                            }`}
-                            onClick={() => handleProductClick(0)}
-                            key={"Dairy & Bakery"}
-                            id="v-pills-home-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#v-pills-home"
-                            type="button"
-                            role="tab"
-                            aria-controls="v-pills-home"
-                            aria-selected="true"
-                            style={{
-                              padding: "10px 50px 10px 20px",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <i className="fi-rr-cupcake"></i>Dairy & Bakery
-                          </button>
-                        </Tab>
-                        <Tab>
-                          <button
-                            className={`nav-link ${
-                              selectedIndex == 1 ? "active" : ""
-                            }`}
-                            onClick={() => handleProductClick(1)}
-                            key={"Fruits & Vegetable"}
-                            id="v-pills-profile-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#v-pills-profile"
-                            type="button"
-                            role="tab"
-                            aria-controls="v-pills-profile"
-                            aria-selected="false"
-                            style={{
-                              padding: "10px 22px",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <i className="fi fi-rs-apple-whole"></i>Fruits &
-                            Vegetable
-                          </button>
-                        </Tab>
-                        <Tab>
-                          <button
-                            className={`nav-link ${
-                              selectedIndex == 2 ? "active" : ""
-                            }`}
-                            onClick={() => handleProductClick(2)}
-                            key={"Snack & Spice"}
-                            id="v-pills-messages-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#v-pills-messages"
-                            type="button"
-                            role="tab"
-                            aria-controls="v-pills-messages"
-                            aria-selected="false"
-                            style={{
-                              padding: "10px 50px 10px 20px",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <i className="fi fi-rr-popcorn"></i>Snack & Spice
-                          </button>
-                        </Tab>
-                        <Tab>
-                          <button
-                            className={`nav-link ${
-                              selectedIndex == 3 ? "active" : ""
-                            }`}
-                            onClick={() => handleProductClick(3)}
-                            key={"Juice & Drinks"}
-                            id="v-pills-settings-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#v-pills-settings"
-                            type="button"
-                            role="tab"
-                            aria-controls="v-pills-settings"
-                            aria-selected="false"
-                            style={{
-                              padding: "10px 50px 10px 20px",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <i className="fi fi-rr-drink-alt"></i>Juice & Drinks{" "}
-                          </button>
-                        </Tab>
-                      </div>
-                    </TabList>
-                    <div className="tab-content" id="v-pills-tabContent">
-                      <Fade duration={500} delay={200}>
-                        <TabPanel
-                          className={`tab-pane fade ${
-                            selectedIndex === 0
-                              ? "show active product-block"
-                              : ""
-                          }`}
-                          role="tabpanel"
-                          aria-labelledby="v-pills-home-tab"
-                        >
-                          <div className="tab-list row">
-                            <div className="col">
-                              <h6 className="gi-col-title">Dairy</h6>
-                              <ul className="cat-list">
-                                {fruits.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div className="col">
-                              <h6 className="gi-col-title">Bakery</h6>
-                              <ul className="cat-list">
-                                {bakery.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </TabPanel>
-                      </Fade>
-                      <Fade duration={500} delay={200}>
-                        <TabPanel
-                          className={`tab-pane fade ${
-                            selectedIndex === 1
-                              ? "show active product-block"
-                              : ""
-                          }`}
-                          role="tabpanel"
-                          aria-labelledby="v-pills-profile-tab"
-                        >
-                          <div className="tab-list row">
-                            <div className="col">
-                              <h6 className="gi-col-title">Fruits</h6>
-                              <ul className="cat-list">
-                                {fruits.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div className="col">
-                              <h6 className="gi-col-title">Vegetable</h6>
-                              <ul className="cat-list">
-                                {fruits.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </TabPanel>
-                      </Fade>
-                      <Fade duration={500} delay={200}>
-                        <TabPanel
-                          className={`tab-pane fade ${
-                            selectedIndex === 2
-                              ? "show active product-block"
-                              : ""
-                          }`}
-                          id="v-pills-messages"
-                          role="tabpanel"
-                          aria-labelledby="v-pills-messages-tab"
-                        >
-                          <div className="tab-list row">
-                            <div className="col">
-                              <h6 className="gi-col-title">Snacks</h6>
-                              <ul className="cat-list">
-                                {snacks.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div className="col">
-                              <h6 className="gi-col-title">Spice</h6>
-                              <ul className="cat-list">
-                                {spice.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </TabPanel>
-                      </Fade>
-                      <Fade duration={500} delay={200}>
-                        <TabPanel
-                          className={`tab-pane fade ${
-                            selectedIndex === 3
-                              ? "show active product-block"
-                              : ""
-                          }`}
-                          id="v-pills-settings"
-                          role="tabpanel"
-                          aria-labelledby="v-pills-settings-tab"
-                        >
-                          <div className="tab-list row">
-                            <div className="col">
-                              <h6 className="gi-col-title">Juice</h6>
-                              <ul className="cat-list">
-                                {juice.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div className="col">
-                              <h6 className="gi-col-title">soft drink</h6>
-                              <ul className="cat-list">
-                                {softdrink.map((data, index) => (
-                                  <li key={index}>
-                                    <Link href={data.href}>{data.name}</Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </TabPanel>
-                      </Fade>
+              <div className="tab-list row">
+                {category.subcategories.length > 0 ? (
+                  category.subcategories.map((subcategory) => (
+                    <div className="col" key={subcategory._id}>
+                      <h6 className="gi-col-title">{subcategory.name}</h6>
+                      <i className={subcategory.icon}></i>
+                      <ul className="cat-list">
+                        <li>{subcategory.productCount} Products</li>
+                      </ul>
                     </div>
+                  ))
+                ) : (
+                  <div className="col">
+                    <p>لا توجد فئات فرعية حالياً.</p>
                   </div>
-                </div>
+                )}
               </div>
-            </Tabs>
+            </TabPanel>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</Tabs>
+
 
             {/* <!-- Main Menu Start --> */}
             <div

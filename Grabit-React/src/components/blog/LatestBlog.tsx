@@ -16,7 +16,7 @@ const LatestBlog = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products458658545</div>;
   if (!data) return (<div><Spinner /></div>);
 
   const getData = () => {

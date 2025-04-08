@@ -19,7 +19,6 @@ import { Category } from "@/types";
 function HeaderManu() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
-  console.log(categories)
   useEffect(() => {
     const fetchData = async () => {
       const result = await getCategories({ lang: "en", page: 1, limit: 10 });
@@ -40,87 +39,87 @@ function HeaderManu() {
           <div className="gi-nav-bar">
             {/* <!-- Category Toggle --> */}
             <Tabs
-  selectedIndex={selectedIndex}
-  onSelect={(selectedIndex) => setSelectedIndex(selectedIndex)}
-  className="gi-category-icon-block"
->
-  <div className="gi-category-menu">
-    <div className="gi-category-toggle">
-      <i className="fi fi-rr-apps"></i>
-      <span className="text">All Categories</span>
-      <i
-        className="fi-rr-angle-small-down d-1199 gi-angle"
-        aria-hidden="true"
-      ></i>
-    </div>
-  </div>
-  <div className="gi-cat-dropdown">
-    <div className="gi-cat-block">
-      <div className="gi-cat-tab">
-        <TabList>
-          <div
-            className="gi-tab-list nav flex-column nav-pills me-3"
-            id="v-pills-tab"
-            role="tablist"
-            aria-orientation="vertical"
-          >
-            {categories.map((category, index) => (
-              <Tab key={category._id}>
-                <button
-                  className={`nav-link ${selectedIndex === index ? "active" : ""}`}
-                  onClick={() => handleProductClick(index)}
-                  id={`v-pills-${category._id}-tab`}
-                  data-bs-toggle="pill"
-                  data-bs-target={`#v-pills-${category._id}`}
-                  type="button"
-                  role="tab"
-                  aria-controls={`v-pills-${category._id}`}
-                  aria-selected={selectedIndex === index}
-                  style={{
-                    padding: "10px 50px 10px 20px",
-                    marginBottom: "10px",
-                  }}
-                >
-
-                  <i className={category.icon}></i> {category.name}
-                </button>
-              </Tab>
-            ))}
-          </div>
-        </TabList>
-
-        <div className="tab-content" id="v-pills-tabContent">
-          {categories.map((category, index) => (
-            <TabPanel
-              key={category._id}
-              className={`tab-pane fade ${selectedIndex === index ? "show active product-block" : ""}`}
-              role="tabpanel"
-              aria-labelledby={`v-pills-${category._id}-tab`}
+              selectedIndex={selectedIndex}
+              onSelect={(selectedIndex) => setSelectedIndex(selectedIndex)}
+              className="gi-category-icon-block"
             >
-              <div className="tab-list row">
-                {category.subcategories.length > 0 ? (
-                  category.subcategories.map((subcategory) => (
-                    <div className="col" key={subcategory._id}>
-                      <h6 className="gi-col-title">{subcategory.name}</h6>
-                      <i className={subcategory.icon}></i>
-                      <ul className="cat-list">
-                        <li>{subcategory.productCount} Products</li>
-                      </ul>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col">
-                    <p>لا توجد فئات فرعية حالياً.</p>
-                  </div>
-                )}
+              <div className="gi-category-menu">
+                <div className="gi-category-toggle">
+                  <i className="fi fi-rr-apps"></i>
+                  <span className="text">All Categories</span>
+                  <i
+                    className="fi-rr-angle-small-down d-1199 gi-angle"
+                    aria-hidden="true"
+                  ></i>
+                </div>
               </div>
-            </TabPanel>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-</Tabs>
+              <div className="gi-cat-dropdown">
+                <div className="gi-cat-block">
+                  <div className="gi-cat-tab">
+                    <TabList>
+                      <div
+                        className="gi-tab-list nav flex-column nav-pills me-3"
+                        id="v-pills-tab"
+                        role="tablist"
+                        aria-orientation="vertical"
+                      >
+                        {categories.map((category, index) => (
+                          <Tab key={category._id}>
+                            <button
+                              className={`nav-link ${selectedIndex === index ? "active" : ""}`}
+                              onClick={() => handleProductClick(index)}
+                              id={`v-pills-${category._id}-tab`}
+                              data-bs-toggle="pill"
+                              data-bs-target={`#v-pills-${category._id}`}
+                              type="button"
+                              role="tab"
+                              aria-controls={`v-pills-${category._id}`}
+                              aria-selected={selectedIndex === index}
+                              style={{
+                                padding: "10px 50px 10px 20px",
+                                marginBottom: "10px",
+                              }}
+                            >
+
+                              <i className={category.icon}></i> {category.name}
+                            </button>
+                          </Tab>
+                        ))}
+                      </div>
+                    </TabList>
+
+                    <div className="tab-content" id="v-pills-tabContent">
+                      {categories.map((category, index) => (
+                        <TabPanel
+                          key={category._id}
+                          className={`tab-pane fade ${selectedIndex === index ? "show active product-block" : ""}`}
+                          role="tabpanel"
+                          aria-labelledby={`v-pills-${category._id}-tab`}
+                        >
+                          <div className="tab-list row">
+                            {category.subcategories.length > 0 ? (
+                              category.subcategories.map((subcategory) => (
+                                <div className="col" key={subcategory._id}>
+                                  <h6 className="gi-col-title">{subcategory.name}</h6>
+                                  <i className={subcategory.icon}></i>
+                                  <ul className="cat-list">
+                                    <li>{subcategory.productCount} Products</li>
+                                  </ul>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="col">
+                                <p>لا توجد فئات فرعية حالياً.</p>
+                              </div>
+                            )}
+                          </div>
+                        </TabPanel>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Tabs>
 
 
             {/* <!-- Main Menu Start --> */}

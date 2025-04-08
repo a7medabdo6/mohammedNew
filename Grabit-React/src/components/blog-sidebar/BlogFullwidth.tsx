@@ -24,7 +24,7 @@ const BlogFullwidth = ({ order = "", lg, md, }: any) => {
     ([url, postData]) => fetcher(url, postData)
   );
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products75757578</div>;
 
   const { data: posts = [], totalPages = 0 } = data || {};
 

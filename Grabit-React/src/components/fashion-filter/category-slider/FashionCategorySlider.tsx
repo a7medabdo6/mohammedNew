@@ -19,7 +19,7 @@ const FashionCategorySlider = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products774115</div>;
   if (!data)
     return (
       <div>

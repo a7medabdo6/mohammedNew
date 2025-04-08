@@ -12,7 +12,7 @@ const Facts = ({
 }) => {
   const { data, error } = useSWR("/api/facts", fetcher, { onSuccess, onError });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products458686</div>;
   if (!data)
     return (
       <div>

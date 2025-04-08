@@ -12,7 +12,7 @@ const PolicyOne = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products784544</div>;
   if (!data)
     return (
       <div>

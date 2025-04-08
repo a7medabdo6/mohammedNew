@@ -58,7 +58,7 @@ const Wishlist = ({
 
   const { data, error } = useSWR("/api/deal", fetcher, { onSuccess, onError });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products74154</div>;
   if (!data)
     return (
       <div>

@@ -19,7 +19,7 @@ const FashionTwoBlog = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products7887878545</div>;
   if (!data)
     return (<div><Spinner /></div>);
 

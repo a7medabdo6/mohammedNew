@@ -47,7 +47,7 @@ const FashionTwoTopRated = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products85</div>;
   if (!data)
     return (
       <div>

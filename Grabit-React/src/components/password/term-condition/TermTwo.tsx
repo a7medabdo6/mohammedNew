@@ -12,7 +12,7 @@ const TermTwo = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products45+654</div>;
   if (!data)
     return (
       <div>

@@ -45,7 +45,7 @@ const ProductPage = ({
     [dispatch]
   );
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products8794</div>;
   if (!data)
     return (
       <div>

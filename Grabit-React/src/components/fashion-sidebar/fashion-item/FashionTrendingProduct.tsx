@@ -64,7 +64,7 @@ const FashionTrendingProduct = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products444444</div>;
   if (!data)
     return (
       <div>

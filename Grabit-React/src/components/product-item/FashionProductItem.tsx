@@ -13,7 +13,7 @@ const FashionProductItem = ({
 }: ProductContentType) => {
   const { data, error } = useSWR(url, fetcher, { onSuccess, onError });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products+95+64</div>;
   if (!data)
     return (
       <div>

@@ -20,7 +20,7 @@ const CategorySlider = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products44644245</div>;
   if (!data)
     return (
       <div>

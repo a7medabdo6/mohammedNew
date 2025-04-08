@@ -105,7 +105,7 @@ const FullWidth = ({
     ["/api/shopitem", postData],
     ([url, postData]) => fetcher(url, postData)
   );
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products798798</div>;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

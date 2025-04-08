@@ -150,7 +150,7 @@ const SidebarCategory = ({
   };
 
   if (clothesError || footwearError || accessoriesError || brandError)
-    return <div>Failed to load products</div>;
+    return <div>Failed to load products5555</div>;
   if (!clothesData || !footwearData || !accessoriesData || tagError)
     return <div></div>;
 

@@ -142,7 +142,7 @@ const FashionSidebar = ({
   );
 
   if (clothesError || footwearError || accessoriesError || brandError)
-    return <div>Failed to load products</div>;
+    return <div>Failed to load products787454</div>;
   if (!clothesData || !footwearData || !accessoriesData) return <div></div>;
 
   if (!brandData) return <div></div>;

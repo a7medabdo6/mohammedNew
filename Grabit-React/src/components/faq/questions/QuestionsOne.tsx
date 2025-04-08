@@ -19,7 +19,7 @@ const QuestionsOne = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products777447</div>;
   if (!data)
     return (
       <div>

@@ -48,7 +48,7 @@ const SidebarFilter = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products8784545</div>;
   if (!data) return <div></div>;
 
   const getData = () => {

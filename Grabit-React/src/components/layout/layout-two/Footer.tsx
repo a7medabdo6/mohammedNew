@@ -28,7 +28,7 @@ const Footer = ({
     }
   );
 
-  if (clothesError) return <div>Failed to load products</div>;
+  if (clothesError) return <div>Failed to load products654654</div>;
   if (!clothesData) return <div></div>;
 
   const getCategoryData = () => {

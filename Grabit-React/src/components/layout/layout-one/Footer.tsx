@@ -23,7 +23,7 @@ function Footer({ onSuccess = () => {}, onError = () => {} }) {
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products654646546545</div>;
   if (!data) return <div></div>;
 
   const getData = () => {

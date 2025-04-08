@@ -49,7 +49,7 @@ const FashionTwoTrending = ({
     onError,
   });
 
-  if (error) return <div>Failed to load products</div>;
+  if (error) return <div>Failed to load products415</div>;
   if (!data)
     return (
       <div>

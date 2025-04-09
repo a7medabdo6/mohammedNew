@@ -247,15 +247,81 @@ const searchProductByName = async (req, res) => {
 // };
 
 
+// const getAllProducts = async (req, res) => {
+//     try {
+//         let { page, limit, search, sortBy, order } = req.query;
+
+//         // تحديد القيم الافتراضية
+//         page = parseInt(page) || 1;
+//         limit = parseInt(limit) || 10;
+//         order = order === 'desc' ? -1 : 1; // الترتيب تصاعدي أو تنازلي
+//         sortBy = sortBy || 'createdAt'; // الترتيب حسب تاريخ الإنشاء افتراضيًا
+
+//         if (page < 1 || limit < 1) {
+//             return res.status(400).json({ message: '❌ القيم غير صحيحة للصفحة أو الحد' });
+//         }
+
+//         const skip = (page - 1) * limit;
+
+//         // إنشاء فلتر للبحث إذا تم تمرير كلمة مفتاحية
+//         let filter = {};
+//         if (search) {
+//             filter = {
+//                 $or: [
+//                     { "name.ar": { $regex: search, $options: "i" } }, // بحث باللغة العربية
+//                     { "name.en": { $regex: search, $options: "i" } }  // بحث باللغة الإنجليزية
+//                 ]
+//             };
+//         }
+
+//         // إحضار المنتجات مع البحث والتصفح والفرز
+//         const products = await Product.find(filter)
+//             .populate({
+//                 path: 'reviews',
+//                 model: 'Review',
+//                 select: 'user rating comment createdAt' // تحديد الحقول المطلوبة فقط
+//             })
+//             .populate({
+//                 path: 'category',
+//                 model: 'Category',
+//                 select: 'name description' // جلب اسم ووصف الفئة
+//             })
+//             .populate({
+//                 path: 'subcategory',
+//                 model: 'Category',
+//                 select: 'name description' // جلب اسم ووصف الفئة الفرعية
+//             })
+//             .sort({ [sortBy]: order }) // الترتيب حسب الحقل المطلوب
+//             .skip(skip)
+//             .limit(limit);
+
+//         // حساب العدد الإجمالي للمنتجات
+//         const totalProducts = await Product.countDocuments(filter);
+//         const totalPages = Math.ceil(totalProducts / limit);
+
+//         res.status(200).json({
+//             message: '✅ المنتجات المسترجعة بنجاح',
+//             page,
+//             totalPages,
+//             totalProducts,
+//             products
+//         });
+
+//     } catch (error) {
+//         res.status(500).json({ message: '❌ حدث خطأ أثناء استرجاع المنتجات', error: error.message });
+//     }
+// };
+
 const getAllProducts = async (req, res) => {
     try {
-        let { page, limit, search, sortBy, order } = req.query;
+        let { page, limit, search, sortBy, order, lang } = req.query;
 
         // تحديد القيم الافتراضية
         page = parseInt(page) || 1;
         limit = parseInt(limit) || 10;
-        order = order === 'desc' ? -1 : 1; // الترتيب تصاعدي أو تنازلي
-        sortBy = sortBy || 'createdAt'; // الترتيب حسب تاريخ الإنشاء افتراضيًا
+        order = order === 'desc' ? -1 : 1;
+        sortBy = sortBy || 'createdAt';
+        lang = ['ar', 'en'].includes(lang) ? lang : 'en'; // التحقق من اللغة
 
         if (page < 1 || limit < 1) {
             return res.status(400).json({ message: '❌ القيم غير صحيحة للصفحة أو الحد' });
@@ -263,39 +329,76 @@ const getAllProducts = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        // إنشاء فلتر للبحث إذا تم تمرير كلمة مفتاحية
+        // فلتر البحث
         let filter = {};
         if (search) {
             filter = {
                 $or: [
-                    { "name.ar": { $regex: search, $options: "i" } }, // بحث باللغة العربية
-                    { "name.en": { $regex: search, $options: "i" } }  // بحث باللغة الإنجليزية
+                    { "name.ar": { $regex: search, $options: "i" } },
+                    { "name.en": { $regex: search, $options: "i" } }
                 ]
             };
         }
 
-        // إحضار المنتجات مع البحث والتصفح والفرز
+        // جلب البيانات
         const products = await Product.find(filter)
             .populate({
                 path: 'reviews',
                 model: 'Review',
-                select: 'user rating comment createdAt' // تحديد الحقول المطلوبة فقط
+                select: 'user rating comment createdAt'
             })
             .populate({
                 path: 'category',
                 model: 'Category',
-                select: 'name description' // جلب اسم ووصف الفئة
+                select: 'name description'
             })
             .populate({
                 path: 'subcategory',
                 model: 'Category',
-                select: 'name description' // جلب اسم ووصف الفئة الفرعية
+                select: 'name description'
             })
-            .sort({ [sortBy]: order }) // الترتيب حسب الحقل المطلوب
+            .sort({ [sortBy]: order })
             .skip(skip)
             .limit(limit);
 
-        // حساب العدد الإجمالي للمنتجات
+        // تنسيق النتائج حسب اللغة
+        const formattedProducts = products.map(product => ({
+            _id: product._id,
+            name: product.name?.[lang] || '',
+            description: product.description?.[lang] || '',
+            status: product.status,
+            gender: product.gender,
+            images: product.images,
+            price: product.price,
+            priceBeforeOffer: product.priceBeforeOffer,
+            isOffer: product.isOffer,
+            isTopRating: product.isTopRating,
+            isTopSelling: product.isTopSelling,
+            isTrending: product.isTrending,
+            quantity: product.quantity,
+            rating: product.rating,
+            category: {
+                _id: product.category?._id,
+                name: product.category?.name?.[lang] || '',
+                description: product.category?.description?.[lang] || ''
+            },
+            subcategory: {
+                _id: product.subcategory?._id,
+                name: product.subcategory?.name?.[lang] || '',
+                description: product.subcategory?.description?.[lang] || ''
+            },
+            reviews: product.reviews.map(review => ({
+                _id: review._id,
+                user: review.user,
+                rating: review.rating,
+                comment: review.comment?.[lang] || '',
+                createdAt: review.createdAt
+            })),
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt
+        }));
+
+        // العدد الإجمالي
         const totalProducts = await Product.countDocuments(filter);
         const totalPages = Math.ceil(totalProducts / limit);
 
@@ -304,13 +407,14 @@ const getAllProducts = async (req, res) => {
             page,
             totalPages,
             totalProducts,
-            products
+            products: formattedProducts
         });
 
     } catch (error) {
         res.status(500).json({ message: '❌ حدث خطأ أثناء استرجاع المنتجات', error: error.message });
     }
 };
+
 
 // ✅ إضافة المسار إلى الراوتر
 

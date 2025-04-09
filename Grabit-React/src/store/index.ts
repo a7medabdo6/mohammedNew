@@ -13,6 +13,7 @@ import filterReducer from "./reducers/filterReducer";
 import themeSlice from "./reducers/themeSlice";
 import loginReducer from "./reducers/loginSlice"; // ✅ إضافة loginSlice
 import productReducer from "./reducers/productSlice";
+import categoryReducer from "./reducers/categorySlice";
 
 // Configure persist for each slice separately
 const persistConfigCart = { key: "cart", storage };
@@ -24,6 +25,7 @@ const persistConfigFilter = { key: "filter", storage };
 const persistConfigTheme = { key: "theme", storage };
 const persistConfigLogin = { key: "login", storage }; // ✅ إضافة login
 const persistConfigProduct = { key: "products", storage };
+const persistConfigCategory = { key: "categories", storage };
 
 // Wrap each reducer with persistReducer
 const persistedCartReducer = persistReducer(persistConfigCart, cartSlice);
@@ -47,6 +49,7 @@ const persistedFilterReducer = persistReducer(
 const persistedThemeReducer = persistReducer(persistConfigTheme, themeSlice);
 const persistedLoginReducer = persistReducer(persistConfigLogin, loginReducer); // ✅ تغليف loginSlice
 const persistedProductReducer = persistReducer(persistConfigProduct, productReducer);
+const persistedCategoryReducer = persistReducer(persistConfigCategory, categoryReducer);
 
 // Combine reducers
 const rootReducer = combineReducers({
@@ -59,6 +62,7 @@ const rootReducer = combineReducers({
   theme: persistedThemeReducer,
   login: persistedLoginReducer, // ✅ إضافته هنا
   products: persistedProductReducer, // ✅ إضافة المنتج
+  categories: persistedCategoryReducer, // ✅ إضافة الفئات
 
 
 });

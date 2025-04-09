@@ -6,6 +6,7 @@ interface CategoryData {
         ar: string;
         en: string;
     };
+    icon:string;
 }
 
 interface CategoryDataEdit {
@@ -17,7 +18,8 @@ interface CategoryDataEdit {
 export const createMainCategory = async (categoryData: CategoryData) => {
     const formattedData = {
         nameAr: categoryData.name.ar,  // تعديل الاسم
-        nameEn: categoryData.name.en   // تعديل الاسم
+        nameEn: categoryData.name.en,
+        icon:categoryData.icon   // تعديل الاسم
     };
     try {
         const response = await axiosInstance.post('/categories', formattedData);

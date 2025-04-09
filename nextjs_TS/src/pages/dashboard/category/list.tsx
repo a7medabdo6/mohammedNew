@@ -17,6 +17,7 @@ interface Subcategory {
 interface Category {
   _id: string;
   name: string;
+  icon: string;
   productCount: number;
   subcategories: Subcategory[];
 }
@@ -39,6 +40,8 @@ const CategoriesPage = () => {
   const [editingSubCategory, setEditingSubCategory] = useState<Subcategory | null>(null);
   const [newSubNameAr, setNewSubNameAr] = useState('');
   const [newSubNameEn, setNewSubNameEn] = useState('');
+  const [iconName, setIconName] = useState("");
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -60,7 +63,7 @@ const CategoriesPage = () => {
   const handleCreateCategory = async () => {
     try {
       if (categoryType === 'main') {
-        await createMainCategory({ name: { ar: newCategoryNameAr, en: newCategoryNameEn } });
+        await createMainCategory({ name: { ar: newCategoryNameAr, en: newCategoryNameEn },icon:iconName });
       } else {
         await createSubCategory({ name: { ar: newCategoryNameAr, en: newCategoryNameEn }, parentId });
       }
@@ -325,6 +328,13 @@ const handleDeleteSubCategory = async (subCategoryId: string) => {
           )}
           <TextField fullWidth margin="dense" label="الاسم بالعربية" value={newCategoryNameAr} onChange={(e) => setNewCategoryNameAr(e.target.value)} />
           <TextField fullWidth margin="dense" label="الاسم بالإنجليزية" value={newCategoryNameEn} onChange={(e) => setNewCategoryNameEn(e.target.value)} />
+          <TextField
+        fullWidth
+        margin="dense"
+        label="أيقونة التصنيف (مثال: Home, Category, Medical)"
+        value={iconName}
+        onChange={(e) => setIconName(e.target.value)}
+      />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>إلغاء</Button>
